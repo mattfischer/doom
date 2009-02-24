@@ -383,227 +383,47 @@ void getuvceil(int y,struct Sector *sector,double data1,double data2,int datatyp
 	g_v=ipy*worldtotex;
 }
 
-void texfloorceil(int x0,int x1,int y,struct Sector *sector,int tex,double u0,double v0,double u1,double v1)
+static void texfloorceil_ref(int x0,int x1,int y,struct Sector *sector,int tex,double u0,double v0,double u1,double v1)
 {
-	double mpy,yp,s;
-	double ix,iy;
-	double ipx,ipy;
-	double lpx,lpy;
-	//double u0,v0,u1,v1;
-	double ua,va;
-	int u,v,ud,vd;
+	int u,v;
 	int x;
 	int width,height;
-	int uerror,verror;
-	int ui,vi,ui2,vi2;
-	int um,vm,uxm,vxm;
-	char buffer[100];
 	UCHAR *data;
-	UCHAR *val, *val2;
+	UCHAR *src, *dst;
 	int width3;
-	int biginc,littleinc;
-	int screenwidth;
 
-	//wsprintf(buffer,"texfloorceil %i-%ix%i, %ix%i-%ix%i\n",x0,x1,y,(int)u0,(int)v0,(int)u1,(int)v1);
-	//DebugString(buffer);
-	
-
-	pbpwait();
-	
 	if(x1<x0) return;
-	data=(*(textures+tex))->data;
-	width=(*(textures+tex))->width;
-	height=(*(textures+tex))->height;
+	data=textures[tex]->data;
+	width=textures[tex]->width;
+	height=textures[tex]->height;
 	
 	width3=width*3;
-	biginc=width3*height;
-	littleinc=width3;
-
-	if(u0>0) u=u0;
-	else	 u=u0-1;
-	if(v0>0) v=v0;
-	else     v=v0-1;
 	
-	ud=u1-u0;
-	vd=v1-v0;
-	if(ud==0) 
-	{
-		if(u1>u0) ud=1; 
-		else ud=-1;
-	}
-	if(vd==0)
-	{
-		if(v1>v0) vd=1; 
-		else vd=-1;
-	}
-
-	um=abs(ud);
-	vm=abs(vd);
-
-	uxm=abs((double)ud*(x1-x0)/(u1-u0));
-	if(uxm==0) uxm=(x1-x0);
-	
-	vxm=abs((double)vd*(x1-x0)/(v1-v0));
-	if(vxm==0) vxm=(x1-x0);
-	
-	if(ud>0) uerror=abs((u-u0)*uxm);
-	else	 uerror=abs((u-u0+1)*uxm);
-
-	if(vd>0) verror=abs((v-v0)*vxm);
-	else	 verror=abs((v-v0+1)*vxm);
-	
-	
-	if(u1>u0) ui=1; 
-	else	  ui=-1; 
-		
-	if(v1>v0) vi=1; 
-	else      vi=-1; 
-	
-	ui2=ui*3;
-	vi2=vi*width3;
-
-	/*
-	val=vidmem+y*pitch+x0*4;
-	val2=data+v*width3+u*3;
+	dst=vidmem+y*pitch+x0*4;
 	for(x=0;x<=x1-x0;x++)
 	{
-	while(uerror>uxm) 
-		{ 
-			u+=ui;
-			val2+=ui2;
-			uerror-=uxm; 
+		u = u0 + x*(u1-u0)/(x1-x0);
+		v = v0 + x*(v1-v0)/(x1-x0);
+
+		if(u<0) u += width * (abs(u)/width + 1);
+		if(v<0) v += height * (abs(v)/height + 1);
+		u %= width;
+		v %= height;
+		src=data+v*width3+u*3;
+
+		*(dst)=*(src);
+		*(dst+1)=*(src+1);
+		*(dst+2)=*(src+2);
+		
+		dst+=4;
 		}
-		while(verror>vxm) 
-		{ 
-			v+=vi; 
-			val2+=vi2;
-			verror-=vxm; 
-		}
-			
-		while(u<0) { u+=width; val2+=littleinc; }
-		while(u>=width) { u-=width; val2-=littleinc; }
-		while(v<0) { v+=height; val2+=biginc; }
-		while(v>=height) { v-=height; val2-=biginc; }
-	
-		*(val)=*(val2);
-		*(val+1)=*(val2+1);
-		*(val+2)=*(val2+2);
-		
-		val+=4;
-
-		uerror+=um;
-		verror+=vm;
-
-		screenwidth--;
-		if(screenwidth>0) goto biglooptop;
-		}*/
-		__asm {
-	
-		mov edi,vidmem;
-		mov eax,y;
-		mov ebx,pitch;
-		mul ebx;
-		add edi,eax;
-		mov eax,x0;
-		mov ebx,4;
-		mul ebx;
-		add edi,eax;
-
-		mov esi,data;
-		mov eax,v;
-		mov ebx,width3;
-		mul ebx;
-		add esi,eax;
-		mov eax,u;
-		mov ebx,3;
-		mul ebx;
-		add esi,eax;
-
-		mov ecx,x1;
-		sub ecx,x0;
-		inc ecx;
-biglooptop:
-		
-ulooptop:
-		mov eax,uerror;
-		cmp eax,uxm;
-		jg ufix;
-		jmp vlooptop;
-ufix:
-		mov eax,uerror;
-		sub eax,uxm;
-		mov uerror,eax;
-		mov eax,u;
-		add eax,ui;
-		mov u,eax;
-		add esi,ui2;
-		jmp ulooptop;
-vlooptop:
-		mov eax,verror;
-		cmp eax,vxm;
-		jg vfix;
-		jmp umintop;
-vfix:
-		mov eax,verror;
-		sub eax,vxm;
-		mov verror,eax;
-		mov eax,v;
-		add eax,vi;
-		mov v,eax;
-		add esi,vi2;
-		jmp vlooptop;
-umintop:
-		mov eax,u;
-		cmp eax,0;
-		jl uminfix;
-umaxtop:
-		mov eax,u;
-		cmp eax,width;
-		jge umaxfix;
-vmintop:
-		mov eax,v;
-		cmp eax,0;
-		jl vminfix;
-vmaxtop:
-		mov eax,v;
-		cmp eax,height;
-		jge vmaxfix;
-		jmp nomodfix;
-uminfix:
-		mov eax,width;
-		add u,eax;
-		add esi,littleinc;
-		jmp umintop;
-umaxfix:
-		mov eax,width;
-		sub u,eax;
-		sub esi,littleinc;
-		jmp umaxtop;
-vminfix:
-		mov eax,height;
-		add v,eax;
-		add esi,biginc;
-		jmp vmintop;
-vmaxfix:
-		mov eax,height;
-		sub v,eax;
-		sub esi,biginc;
-		jmp vmaxtop;
-nomodfix:
-		
-		movsd;
-		sub esi,4;
-
-		mov eax,um;
-		add uerror,eax;
-		mov eax,vm;
-		add verror,eax;
-		dec ecx;
-		cmp ecx,0;
-		jg biglooptop;
-	}
-		
 }
+
+void texfloorceil(int x0,int x1,int y,struct Sector *sector,int tex,double u0,double v0,double u1,double v1)
+{
+	texfloorceil_ref(x0, x1, y, sector, tex, u0, v0, u1, v1);
+}
+
 void DrawScreen()
 {
 #ifndef NOVIS
