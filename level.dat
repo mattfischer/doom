@@ -1,0 +1,26 @@
+4    #numtextures
+
+#num filename
+0    tex.raw 
+1    tex2.raw
+2    tex3.raw
+3    texb.raw
+
+2    #numsectors
+#num ceilingheight floorheight numwalls ceiltex floortex
+0    10            0           6        2       1
+#num flags   x1    y1    x2    y2    adjoin mirror toptex tophoriz topoffset midtex midhoriz midoffset botttex botthoriz bottomoffset
+0    NORMAL  -20   -20   -20   20    -1     -1     0      16       0         0      16       0         0       16        0
+1    NORMAL  -20    20    10   20    -1     -1     0      16       0         0      16       0         0       16        0
+2    NORMAL   10    20    10    5    -1     -1     0      16       0         0      16       0         0       16        0
+3    ADJOINED 10     5    10   -5     1      0     0      16       0         0      16       0         0       16        0
+4    NORMAL   10    -5    10  -20    -1     -1     0      16       0         0      16       0         0       16        0
+5    NORMAL   10   -20   -20  -20    -1     -1     0      16       0         0      16       0         0       16        0
+
+#num ceilingheight floorheight numwalls ceiltex floortex
+1    9             .5          4        2       1
+#num flags    x1    y1    x2  y2     adjoin mirror toptex tophoriz topoffset midtex midhoriz midoffset botttex botthoriz bottomoffset
+0    ADJOINED 10    -5    10   5      0      3     0      16       0         0      16       0         0       16        0
+1    NORMAL   10     5    25   5     -1     -1     0      16       0         3      16       0         0       16        0
+2    NORMAL   25     5    25  -5     -1     -1     0      16       0         3      16       0         0       16        0
+3    NORMAL   25    -5    10  -5     -1     -1     0      16       0         3      16       0         0       16        0
