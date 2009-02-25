@@ -131,180 +131,47 @@ unsigned long dofade(unsigned long color,int fade)
 			return color;
 	
 }
-void texwall(int x,int y0,int y1, int tex, int tx,int ty0,int ty1,int miny,int maxy, int fade=0)
+static void texwall_ref(int x,int y0,int y1, int tex, int tx,int ty0,int ty1,int miny,int maxy, int fade=0)
 {
 	UCHAR *data;
 	int width;
 	int height;
-	int i;
-	int i2;
-	int width3;
-	int pitch4;
-	int ib;
-	int width3b;
 	int ty;
-	int error;
-	int biginc;
-	int max;
-
-	unsigned char r,g,b;
-	DWORD color;
+	
 #ifdef NOVIS
 	return;
 #endif
 
-	pbpwait();
-			
 	width=(*(textures+tex))->width;
 	height=(*(textures+tex))->height;
 	data=(*(textures+tex))->data;
 	
-	__asm {
-			mov eax,pitch;	//pitch4=pitch-4;
-			sub eax,4;
-			mov pitch4,eax;
-			
-			mov error,0;	//error=0;
-			
-			mov eax,ty0;	//ty=ty0;
-			mov ty,eax;
-			mov eax,y1;		//i=y1-y0;
-			sub eax,y0;
-			mov i,eax;
-		
-			mov eax,ty1;	//i2=ty1-ty0;
-			sub eax,ty0;
-			mov i2,eax;
+	if(tx < 0) tx += width * (abs(tx) / width + 1);
+	tx %= width;
 
-			mov eax,y0;		//if(y0<miny) {
-			cmp eax,miny;
-			jge noadj;
-			
-			mov eax,miny;   //error=i2*(miny-y0)%i;
-			sub eax,y0;
-			mov edx,i2;
-			mul edx;
-			xor edx,edx;
-			mov ebx,i;
-			div ebx;
-			mov error,edx;
+	for(int y = 0; y <= y1 - y0; y++) 
+	{
+		if(y + y0 < miny) continue;
+		if(y + y0 > maxy) continue;
 
-			xchg eax,edx;	//ty=ty+i2*(miny-y0)/i;
-			mov eax,ty;
-			add eax,edx;
-			mov ty,eax;
-			mov eax,miny;	//y0=miny;
-			mov y0,eax;
-noadj:						//}
-	
-			mov eax,width;	//width3=width*3;
-			shl eax,1;
-			add eax,width;
-			mov width3,eax;
-			
-			mov eax,width3; //biginc=width3*height;
-			mov edx,height;
-			mul edx;
-			mov biginc,eax;
+		int ty = ty0 + y * (ty1 - ty0 - 1) / (y1 - y0);
+		if(ty < 0) ty += height * (abs(ty)/ height + 1);
+		ty %= height;
 
-			mov eax,i;		//ib=i;
-			mov ib,eax;
-			
-			mov eax,width3;	//width3b=width3;
-			mov width3b,eax;
-			
-			cmp i2,0;		//if(i2!=0) {
-			je noopt;
-			
-			xor edx,edx;	//width3b=width3*i/i2;
-			mov eax,i;
-			mov ebx,i2;
-			div ebx;
-			mov ecx,eax;
-			mov ebx,width3;
-			mul ebx;
-			mov width3b,eax;
+		UCHAR *dst = vidmem + (y + y0) * pitch + x * 4;
+		UCHAR *src = data + ty * width * 3 + tx * 3;
 
-			mov eax,ecx;	//ib=i*i/i2;
-			mov ebx,i;
-			mul ebx;
-
-			cmp eax,0;		//if(ib==0) ib=1;
-			jne noadd;
-			mov eax,1;
-noadd:
-			mov ib,eax;
-noopt:						//}
-			mov esi,data;	//esi=data+3*width*ty+tx*3;
-			mov eax,tx;
-			mov edx,3;
-			mul edx;
-			add esi,eax;
-			mov eax,width3;
-			mov edx,ty;
-			mul edx;
-			add esi,eax;
-			
-			mov edi,vidmem; //edi=vidmem+y0*pitch+x*4;
-			mov eax,x;
-			shl eax,2;
-			add edi,eax;
-			mov eax,y0;
-			mov edx,pitch;
-			mul edx;
-			add edi,eax;
-
-			xor edx,edx;	//max=data+3*width*height;
-			mov eax,width3; 
-			mov ecx,height;
-			mul ecx;
-			add eax,data
-			mov max,eax;
-			
-			mov eax,y1;
-			cmp eax,maxy;	//if(y1>maxy) y1=maxy;
-			jle noadj2;
-			mov eax,maxy;
-			mov y1,eax;
-noadj2:
-			mov ecx,y1;		//ecx=y1-y0+1;
-			sub ecx,y0;
-			inc ecx;
-
-			mov eax,error;	//eax=error;
-			mov ebx,i;		//ebx=i;
-			
-							//inner loop
-label:		cmp eax,ib;		//if(eax>ib) 
-			jg changeline;
-back:		cmp eax,ebx;	//if(eax>ebx)
-			jg changeline2;
-change:
-			cmp esi,max;	//if(esi>max)
-			jge fixbig;
-			cmp esi,data;	//if(esi<data)
-			jl fixlittle;
-nofix:		movsd;			//pixel write
-			add edi,pitch4; //edi+=pitch4;
-			sub esi,4;		//esi-=4;
-			add eax,i2;		//eax+=i2;
-			loop label;
-	
-			jmp done;
-changeline:	sub eax,ib;		//eax-=ib;
-			add esi,width3b;//esi+=width3b;
-			jmp back;
-changeline2:sub eax,ebx;	//eax-=ebx;
-			add esi,width3; //esi+=width3;
-			jmp back;
-fixbig:		sub esi,biginc;	//esi-=biginc;
-			jmp change;
-fixlittle:	add esi,biginc; //esi+=biginc;
-			jmp change;
-done:
+		*dst = *src;
+		*(dst + 1) = *(src + 1);
+		*(dst + 2) = *(src + 2);
 	}
-		
-  }
+}
+
+void texwall(int x,int y0,int y1, int tex, int tx,int ty0,int ty1,int miny,int maxy, int fade=0)
+{
+	texwall_ref(x, y0, y1, tex, tx, ty0, ty1, miny, maxy, fade);
+}
+
 void hline(int x0,int x1,int y, int r, int g, int b)
 {
 	int x;
