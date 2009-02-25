@@ -131,23 +131,14 @@ unsigned long dofade(unsigned long color,int fade)
 			return color;
 	
 }
-static void texwall_ref(int x,int y0,int y1, int tex, int tx,int ty0,int ty1,int miny,int maxy, int fade=0)
+static void texwall_ref(int x,int y0,int y1, Texture *texture, int tx,int ty0,int ty1,int miny,int maxy, int fade=0)
 {
-	UCHAR *data;
-	int width;
-	int height;
-	int ty;
-	
 #ifdef NOVIS
 	return;
 #endif
 
-	width=(*(textures+tex))->width;
-	height=(*(textures+tex))->height;
-	data=(*(textures+tex))->data;
-	
-	if(tx < 0) tx += width * (abs(tx) / width + 1);
-	tx %= width;
+	if(tx < 0) tx += texture->width * (abs(tx) / texture->width + 1);
+	tx %= texture->width;
 
 	for(int y = 0; y <= y1 - y0; y++) 
 	{
@@ -155,11 +146,11 @@ static void texwall_ref(int x,int y0,int y1, int tex, int tx,int ty0,int ty1,int
 		if(y + y0 > maxy) continue;
 
 		int ty = ty0 + y * (ty1 - ty0 - 1) / (y1 - y0);
-		if(ty < 0) ty += height * (abs(ty)/ height + 1);
-		ty %= height;
+		if(ty < 0) ty += texture->height * (abs(ty)/ texture->height + 1);
+		ty %= texture->height;
 
 		UCHAR *dst = vidmem + (y + y0) * pitch + x * 4;
-		UCHAR *src = data + ty * width * 3 + tx * 3;
+		UCHAR *src = texture->data + ty * texture->width * 3 + tx * 3;
 
 		*dst = *src;
 		*(dst + 1) = *(src + 1);
@@ -167,9 +158,9 @@ static void texwall_ref(int x,int y0,int y1, int tex, int tx,int ty0,int ty1,int
 	}
 }
 
-void texwall(int x,int y0,int y1, int tex, int tx,int ty0,int ty1,int miny,int maxy, int fade=0)
+void texwall(int x,int y0,int y1, Texture *texture, int tx,int ty0,int ty1,int miny,int maxy, int fade=0)
 {
-	texwall_ref(x, y0, y1, tex, tx, ty0, ty1, miny, maxy, fade);
+	texwall_ref(x, y0, y1, texture, tx, ty0, ty1, miny, maxy, fade);
 }
 
 void hline(int x0,int x1,int y, int r, int g, int b)
@@ -250,45 +241,40 @@ void getuvceil(int y,struct Sector *sector,double data1,double data2,int datatyp
 	g_v=ipy*worldtotex;
 }
 
-static void texfloorceil_ref(int x0,int x1,int y,struct Sector *sector,int tex,double u0,double v0,double u1,double v1)
+static void texfloorceil_ref(int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
 {
 	int u,v;
 	int x;
-	int width,height;
-	UCHAR *data;
 	UCHAR *src, *dst;
 	int width3;
 
 	if(x1<x0) return;
-	data=textures[tex]->data;
-	width=textures[tex]->width;
-	height=textures[tex]->height;
 	
-	width3=width*3;
-	
-	dst=vidmem+y*pitch+x0*4;
-	for(x=0;x<=x1-x0;x++)
+	width3 = texture->width*3;
+	dst = vidmem + y*pitch + x0*4;
+
+	for(x=0; x <= x1-x0; x++)
 	{
 		u = u0 + x*(u1-u0)/(x1-x0);
 		v = v0 + x*(v1-v0)/(x1-x0);
 
-		if(u<0) u += width * (abs(u)/width + 1);
-		if(v<0) v += height * (abs(v)/height + 1);
-		u %= width;
-		v %= height;
-		src=data+v*width3+u*3;
+		if(u < 0) u += texture->width * (abs(u)/texture->width + 1);
+		if(v < 0) v += texture->height * (abs(v)/texture->height + 1);
+		u %= texture->width;
+		v %= texture->height;
+		src = texture->data+v*width3+u*3;
 
 		*(dst)=*(src);
 		*(dst+1)=*(src+1);
 		*(dst+2)=*(src+2);
 		
 		dst+=4;
-		}
+	}
 }
 
-void texfloorceil(int x0,int x1,int y,struct Sector *sector,int tex,double u0,double v0,double u1,double v1)
+void texfloorceil(int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
 {
-	texfloorceil_ref(x0, x1, y, sector, tex, u0, v0, u1, v1);
+	texfloorceil_ref(x0, x1, y, sector, texture, u0, v0, u1, v1);
 }
 
 void DrawScreen()
@@ -474,440 +460,437 @@ void InitWalls()
 
 void DrawWalls()
 {
-	int x,y,i;
-	double xinc,yinc;
-	double u0,v0,u1,v1;
+	int x, y, i;
+	double xinc, yinc;
+	double u0, v0, u1, v1;
 	struct Sector* sector;
 	char buffer[100];
 
-	spacetimer=GetTickCount();
-	cy=0;
-	fy=VSIZE-1;
+	spacetimer = GetTickCount();
+	cy = 0;
+	fy = VSIZE - 1;
 	
-	p0x=player.x;
-	p0y=player.y;
-	p1x=ds0*cosp-sinp*w2+p0x;
-	p1y=ds0*sinp+cosp*w2+p0y;
-	xinc=w640*sinp;
-	yinc=-w640*cosp;
-	numactivesectors=0;
+	p0x = player.x;
+	p0y = player.y;
+	p1x = ds0 * cosp - sinp * w2 + p0x;
+	p1y = ds0 * sinp + cosp * w2 + p0y;
+	xinc = w640 * sinp;
+	yinc = -w640 * cosp;
+	numactivesectors = 0;
 
-	for(x=0;x<HSIZE;x++) 
+	for(x=0; x<HSIZE; x++) 
 	{
-		px=p1x-p0x;
-		py=p1y-p0y;
+		px = p1x - p0x;
+		py = p1y - p0y;
 		
-		if(abs(px)>abs(py))
+		if(abs(px) > abs(py))
 		{ 
-			usepx=1; 
-			ds=hw*px; 
+			usepx = 1; 
+			ds = hw * px; 
 		}
 		else
 		{ 
-			usepx=0; 
-			ds=hw*py; 
+			usepx = 0; 
+			ds = hw * py; 
 		}
 
-		if(ubermode==0) DrawWallSlice(x,sectors+player.sector,-1,0,VSIZE-1);
-		else			DrawWallSlice(x,sectors+player.sector,-1,0,VSIZE-1);
-		p1x+=xinc;
-		p1y+=yinc;		
+		if(ubermode == 0)	DrawWallSlice(x, player.sector, -1, 0, VSIZE - 1);
+		else				DrawWallSlice(x, player.sector, -1, 0, VSIZE - 1);
+		p1x += xinc;
+		p1y += yinc;		
 	}
 	int k;
 
-	for(k=fy+1;k<VSIZE;k++)
+	for(k=fy+1; k<VSIZE; k++)
 	{
-		if(k<0) continue;
-		if(fc[k].x==-1) continue;
+		if(k < 0) continue;
+		if(fc[k].x == -1) continue;
 
-		getuvfloor(k,fc[k].sector,px,py,1);
-		texfloorceil(fc[k].x,x,k,fc[k].sector,fc[k].sector->floortex,fc[k].u,fc[k].v,g_u,g_v);
-		fc[k].x=-1;
+		getuvfloor(k, fc[k].sector, px, py, 1);
+		texfloorceil(fc[k].x, x, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+		fc[k].x = -1;
 	}
 
-	for(k=cy-1;k>=0;k--)
+	for(k=cy-1; k>=0; k--)
 	{
-		if(k>VSIZE-1) continue;
-		if(fc[k].x==-1) continue;
+		if(k > VSIZE - 1) continue;
+		if(fc[k].x == -1) continue;
 
-		getuvceil(k,fc[k].sector,px,py,1);
-		texfloorceil(fc[k].x,x,k,fc[k].sector,fc[k].sector->ceiltex,fc[k].u,fc[k].v,g_u,g_v);
-		fc[k].x=-1;
+		getuvceil(k, fc[k].sector, px, py, 1);
+		texfloorceil(fc[k].x, x, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+		fc[k].x = -1;
 	}
 
-	if(globalflag<65536) globalflag++;
-	else globalflag=0;
-	playbyplay=0;
+	if(globalflag < 65536) globalflag++;
+	else globalflag = 0;
+	playbyplay = 0;
 }	
 
 void DrawWallSlice(int x,struct Sector *sector,int ignore,int miny,int maxy)
 {
 	struct Wall tempwall;
-	double q0x,q0y,q1x,q1y;
-	double qx,qy,pqx,pqy;
-	double s,d,bottom,dsd;
-	double u0,v0,u1,v1;
-	double ix,iy;
-	int h1t,h2t,h1bt,h2bt;
-	int h1i,h2i,h1bi,h2bi;
-	int i,wall,j;
-	int toptx,midtx,botttx;
-	int toptex,midtex,botttex;
+	double q0x, q0y, q1x, q1y;
+	double qx, qy, pqx, pqy;
+	double s, d, bottom, dsd;
+	double u0, v0, u1, v1;
+	double ix, iy;
+	int h1t, h2t, h1bt, h2bt;
+	int h1i, h2i, h1bi, h2bi;
+	int i, wall, j;
+	int toptx, midtx, botttx;
+	Texture *toptex, *midtex, *botttex;
 	char buffer[100];
-	int y0,y1;
+	int y0, y1;
 	int keepgoing=1;
 	int k;
 
 	while(keepgoing)
 	{
-	if(sector->lastwall!=-1) wall=sector->lastwall-1;
-	else					 wall=-1;
-	
-	for(i=0;i<sector->numwalls;i++)
-	{
-		wall++;		
-		if(wall>=sector->numwalls) wall%=sector->numwalls;
-		if(wall==ignore) continue;
-		tempwall=*(sector->walls+wall);
+		if(sector->lastwall != -1)	wall = sector->lastwall-1;
+		else						wall = -1;
 		
-		q0x=tempwall.start.x;
-		q0y=tempwall.start.y;
-		q1x=tempwall.end.x;
-		q1y=tempwall.end.y;
-		
-		qx=q1x-q0x;
-		qy=q1y-q0y;
-		pqx=p0x-q0x;
-		pqy=p0y-q0y;
-		
-		bottom=px*qy-py*qx;
-		s=(px*pqy-py*pqx)/bottom;
-		if(s<0.0 || s>1.0) continue;
-	
-		ix=q0x+qx*s;
-		iy=q0y+qy*s;
-		if(usepx) d=ix-p0x;
-		else   	  d=iy-p0y;
-		
-		dsd=ds/d;
-		if(dsd>0.0) break;
-	}
-		h1i=horizon+(int)(dsd*(player.height-sector->floorheight));
-		h2i=horizon-(int)(dsd*(sector->ceilingheight-player.height));
-		
-		if(sector->beenin!=globalflag)
+		for(i=0; i<sector->numwalls; i++)
 		{
-			sector->fy=maxy;
-			sector->fy2=maxy;
-
-			sector->cy=miny;
-			sector->cy2=miny;
-			sector->lastwall=-1;
+			wall++;		
+			if(wall >= sector->numwalls) wall %= sector->numwalls;
+			if(wall == ignore) continue;
+			tempwall = sector->walls[wall];
 			
-			sector->beenin=globalflag;
+			q0x = tempwall.start.x;
+			q0y = tempwall.start.y;
+			q1x = tempwall.end.x;
+			q1y = tempwall.end.y;
+			
+			qx = q1x - q0x;
+			qy = q1y - q0y;
+			pqx = p0x - q0x;
+			pqy = p0y - q0y;
+			
+			bottom = px * qy - py * qx;
+			s = (px * pqy - py * pqx) / bottom;
+			if(s<0.0 || s>1.0) continue;
+		
+			ix = q0x + qx * s;
+			iy = q0y + qy * s;
+			if(usepx) d = ix - p0x;
+			else   	  d = iy - p0y;
+			
+			dsd = ds / d;
+			if(dsd > 0.0) break;
+		}
+
+		h1i = horizon + (int)(dsd * (player.height - sector->floorheight));
+		h2i = horizon - (int)(dsd * (sector->ceilingheight - player.height));
+		
+		if(sector->beenin != globalflag)
+		{
+			sector->fy = maxy;
+			sector->fy2 = maxy;
+
+			sector->cy = miny;
+			sector->cy2 = miny;
+			sector->lastwall = -1;
+			
+			sector->beenin = globalflag;
 		}
 	
 		// begin floor 
 		
-		if(tempwall.flags==WALL_NORMAL)
+		if(tempwall.flags == WALL_NORMAL)
 		{
-			for(k=fy+1;k<=sector->fy;k++)
+			for(k=fy+1; k<=sector->fy; k++)
 			{
-				if(k<miny) continue;
-				if(k<horizon) continue;
-				if(k>maxy) break;
+				if(k < miny) continue;
+				if(k < horizon) continue;
+				if(k > maxy) break;
 				
-				if(fc[k].x==-1) continue;
+				if(fc[k].x == -1) continue;
 
-				getuvfloor(k,fc[k].sector,px,py,1);
-				texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->floortex,fc[k].u,fc[k].v,g_u,g_v);
-				fc[k].x=-1;
+				getuvfloor(k, fc[k].sector, px, py, 1);
+				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+				fc[k].x = -1;
 			}
-			fy=sector->fy;
+			fy = sector->fy;
 		}
 
-		if(h1i>sector->fy)
+		if(h1i > sector->fy)
 		{
-			for(k=sector->fy+1;k<=h1i;k++)
+			for(k=sector->fy+1; k<=h1i; k++)
 			{
-				if(k<miny) continue;
-				if(k<horizon) continue;
-				if(k>maxy) break;
-				if(fc[k].x==-1) continue;
+				if(k < miny) continue;
+				if(k < horizon) continue;
+				if(k > maxy) break;
+				if(fc[k].x == -1) continue;
 
-				getuvfloor(k,sector,px,py,1);
-				texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->floortex,fc[k].u,fc[k].v,g_u,g_v);
-				fc[k].x=-1;
+				getuvfloor(k, sector, px, py, 1);
+				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+				fc[k].x = -1;
 			}
-			sector->fy=h1i;
-			if(tempwall.flags==WALL_NORMAL) fy=h1i;
+			sector->fy = h1i;
+			if(tempwall.flags == WALL_NORMAL) fy = h1i;
 		}
 
-		if(maxy<sector->fy2)
+		if(maxy < sector->fy2)
 		{
-			for(k=maxy+1;k<=sector->fy2;k++)
+			for(k=maxy+1; k<=sector->fy2; k++)
 			{
-				if(fc[k].x==-1) continue;
-				if(fc[k].sector!=sector) continue;
+				if(fc[k].x == -1) continue;
+				if(fc[k].sector != sector) continue;
 				
-				if(k>horizon)
+				if(k > horizon)
 				{
-					getuvfloor(k,sector,px,py,1);
-					texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->floortex,fc[k].u,fc[k].v,g_u,g_v);
+					getuvfloor(k, sector, px, py, 1);
+					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				else
 				{
-					getuvceil(k,sector,px,py,1);
-					texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->ceiltex,fc[k].u,fc[k].v,g_u,g_v);
+					getuvceil(k, sector, px, py, 1);
+					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
-				fc[k].x=-1;
+				fc[k].x = -1;
 			}
-			sector->fy2=maxy;
+			sector->fy2 = maxy;
 		}
 
-		if(h1i<sector->fy)
+		if(h1i < sector->fy)
 		{
-			for(k=h1i+1;k<=sector->fy;k++)
+			for(k=h1i+1; k<=sector->fy; k++)
 			{
-				if(k<miny) continue;
-				if(k<horizon) continue;
-				if(k>maxy) break;
+				if(k < miny) continue;
+				if(k < horizon) continue;
+				if(k > maxy) break;
 
-				if(fc[k].x!=-1)
+				if(fc[k].x != -1)
 				{
-					getuvfloor(k,fc[k].sector,px,py,1);
-					texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->floortex,fc[k].u,fc[k].v,g_u,g_v);
-					
+					getuvfloor(k, fc[k].sector, px, py, 1);
+					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 
-				fc[k].x=x;
-				fc[k].sector=sector;
-				getuvfloor(k,sector,px,py,1);
-				fc[k].u=g_u;
-				fc[k].v=g_v;
+				fc[k].x = x;
+				fc[k].sector = sector;
+				getuvfloor(k, sector, px, py, 1);
+				fc[k].u = g_u;
+				fc[k].v = g_v;
 			}
-			sector->fy=h1i;
-			fy=h1i;
+			sector->fy = h1i;
+			fy = h1i;
 		}
 
-		if(maxy>sector->fy2)
+		if(maxy > sector->fy2)
 		{
-			for(k=sector->fy2+1;k<=maxy;k++)
+			for(k=sector->fy2+1; k<=maxy; k++)
 			{
-				if(k<miny) continue;
+				if(k < miny) continue;
 				if(k<horizon && maxy>=h2i) continue;
 
-				fc[k].x=x;
-				fc[k].sector=sector;
-				if(k>horizon) getuvfloor(k,sector,px,py,1);
-				else getuvceil(k,sector,px,py,1);
+				fc[k].x = x;
+				fc[k].sector = sector;
+				if(k > horizon) getuvfloor(k, sector, px, py, 1);
+				else getuvceil(k, sector, px, py, 1);
 				
-
-				fc[k].u=g_u;
-				fc[k].v=g_v;
+				fc[k].u = g_u;
+				fc[k].v = g_v;
 			}
-			sector->fy2=maxy;
+			sector->fy2 = maxy;
 		}
 	
 		// end floor
 
 		// begin ceiling
 
-		if(tempwall.flags==WALL_NORMAL)
+		if(tempwall.flags == WALL_NORMAL)
 		{
-			for(k=cy-1;k>=sector->cy;k--)
+			for(k=cy-1; k>=sector->cy; k--)
 			{
-				if(k<miny) break;
-				if(k>horizon) continue;
-				if(k>maxy) continue;
+				if(k < miny) break;
+				if(k > horizon) continue;
+				if(k > maxy) continue;
 
-				if(fc[k].x==-1) continue;
+				if(fc[k].x == -1) continue;
 
-				getuvceil(k,fc[k].sector,px,py,1);
-				texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->ceiltex,fc[k].u,fc[k].v,g_u,g_v);
-				fc[k].x=-1;
+				getuvceil(k, fc[k].sector, px, py, 1);
+				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+				fc[k].x = -1;
 			}
-			cy=sector->cy;
+			cy = sector->cy;
 		}
 
-		if(h2i<sector->cy)
+		if(h2i < sector->cy)
 		{
-			for(k=sector->cy-1;k>=h2i;k--)
+			for(k=sector->cy-1; k>=h2i; k--)
 			{
-				if(k<miny) break;
-				if(k>horizon) continue;
-				if(k>maxy) continue;
-				if(fc[k].x==-1) continue;
+				if(k < miny) break;
+				if(k > horizon) continue;
+				if(k > maxy) continue;
+				if(fc[k].x == -1) continue;
 
-				getuvceil(k,sector,px,py,1);
-				texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->ceiltex,fc[k].u,fc[k].v,g_u,g_v);
-				fc[k].x=-1;
+				getuvceil(k, sector, px, py, 1);
+				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+				fc[k].x = -1;
 			}
-			sector->cy=h2i;
-			if(tempwall.flags==WALL_NORMAL) cy=h2i;
+			sector->cy = h2i;
+			if(tempwall.flags == WALL_NORMAL) cy = h2i;
 		}
 
-		if(miny>sector->cy2)
+		if(miny > sector->cy2)
 		{
-			for(k=miny-1;k>=sector->cy2;k--)
+			for(k=miny-1; k>=sector->cy2; k--)
 			{
-				if(fc[k].x==-1) continue;
-				if(fc[k].sector!=sector) continue;
+				if(fc[k].x == -1) continue;
+				if(fc[k].sector != sector) continue;
 
-				if(k<horizon)
+				if(k < horizon)
 				{
-					getuvceil(k,sector,px,py,1);
-					texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->ceiltex,fc[k].u,fc[k].v,g_u,g_v);
+					getuvceil(k, sector, px, py, 1);
+					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				else
 				{
-					getuvfloor(k,sector,px,py,1);
-					texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->floortex,fc[k].u,fc[k].v,g_u,g_v);
+					getuvfloor(k, sector, px, py, 1);
+					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
-				fc[k].x=-1;
+				fc[k].x = -1;
 			}
-			sector->cy2=miny;
+			sector->cy2 = miny;
 		}
 
-		if(h2i>sector->cy)
+		if(h2i > sector->cy)
 		{
-			for(k=h2i-1;k>=sector->cy;k--)
+			for(k=h2i-1; k>=sector->cy; k--)
 			{
-				if(k<miny) break;
-				if(k>horizon) continue;
-				if(k>maxy) continue;
+				if(k < miny) break;
+				if(k > horizon) continue;
+				if(k > maxy) continue;
 
-				if(fc[k].x!=-1)
+				if(fc[k].x != -1)
 				{
-					getuvceil(k,fc[k].sector,px,py,1);
-					texfloorceil(fc[k].x,x-1,k,fc[k].sector,fc[k].sector->ceiltex,fc[k].u,fc[k].v,g_u,g_v);
+					getuvceil(k, fc[k].sector, px, py, 1);
+					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 
-				fc[k].x=x;
-				fc[k].sector=sector;
-				getuvceil(k,sector,px,py,1);
-				fc[k].u=g_u;
-				fc[k].v=g_v;
+				fc[k].x = x;
+				fc[k].sector = sector;
+				getuvceil(k, sector, px, py, 1);
+				fc[k].u = g_u;
+				fc[k].v = g_v;
 			}
-			sector->cy=h2i;
-			cy=h2i;
+			sector->cy = h2i;
+			cy = h2i;
 		}
 
-		if(miny<sector->cy2)
+		if(miny < sector->cy2)
 		{
-			for(k=sector->cy2-1;k>=miny;k--)
+			for(k=sector->cy2-1; k>=miny; k--)
 			{
-				if(k<miny) break;
+				if(k < miny) break;
 				if(k>horizon && miny<=h1i) continue;
 
-				fc[k].x=x;
-				fc[k].sector=sector;
-				if(k<horizon) getuvceil(k,sector,px,py,1);
-				else getuvfloor(k,sector,px,py,1);
-				fc[k].u=g_u;
-				fc[k].v=g_v;
+				fc[k].x = x;
+				fc[k].sector = sector;
+				if(k < horizon) getuvceil(k, sector, px, py, 1);
+				else getuvfloor(k, sector, px, py, 1);
+				fc[k].u = g_u;
+				fc[k].v = g_v;
 			}
-			sector->cy2=miny;
+			sector->cy2 = miny;
 		}
 	
 		// end ceiling
 		
 
-		sector->lastwall=wall;
+		sector->lastwall = wall;
 		
-		if(h2i>maxy) return;
-		if(h1i<miny) return;
+		if(h2i > maxy) return;
+		if(h1i < miny) return;
 		
-		if(tempwall.flags==WALL_NORMAL)
+		if(tempwall.flags == WALL_NORMAL)
 		{
-			h2t=tempwall.midoffset;
-			h1t=tempwall.midbott;
-			midtex=tempwall.midtex;
-			midtx=tempwall.midhoriz+(int)(s*tempwall.length*worldtotex)+tempwall.midmod;
-			while(midtx<0) 
+			h2t = tempwall.midoffset;
+			h1t = tempwall.midbott;
+			midtex = tempwall.midtex;
+			midtx = tempwall.midhoriz + (int)(s * tempwall.length * worldtotex) + tempwall.midmod;
+			while(midtx < 0) 
 			{ 
-				midtx+=(*(textures+midtex))->width; 
-				tempwall.midmod+=(*(textures+midtex))->width; 
+				midtx += midtex->width; 
+				tempwall.midmod += midtex->width; 
 			}
-			while(midtx>=(*(textures+midtex))->width) 
+			while(midtx >= midtex->width) 
 			{ 
-				midtx-=(*(textures+midtex))->width; 
-				tempwall.midmod-=(*(textures+midtex))->width;
+				midtx -= midtex->width; 
+				tempwall.midmod -= midtex->width;
 			}
 			
-			texwall(x,h2i,h1i,midtex,midtx,h2t,h1t,miny,maxy, d*5);
-			keepgoing=0;
+			texwall(x, h2i, h1i, midtex, midtx, h2t, h1t, miny, maxy, d*5);
+			keepgoing = 0;
 		}
 		
-		if(tempwall.flags==WALL_ADJOINED)
+		if(tempwall.flags == WALL_ADJOINED)
 		{
-			h1bi=horizon+(int)(dsd*(player.height-(sectors+tempwall.adjoin)->floorheight));
-			h2bi=horizon-(int)(dsd*((sectors+tempwall.adjoin)->ceilingheight-player.height));
+			h1bi = horizon + (int)(dsd * (player.height - tempwall.adjoin->floorheight));
+			h2bi = horizon - (int)(dsd * (tempwall.adjoin->ceilingheight - player.height));
 						
-						
-			if(h2bi>=miny)
+			if(h2bi >= miny)
 			{
-				if(h2bi>h2i) 
+				if(h2bi > h2i) 
+				{ 
+					h2t = tempwall.topoffset;
+					h2bt = tempwall.topbott;
+					toptex = tempwall.toptex;
+					toptx = tempwall.tophoriz + (int)(s * tempwall.length * worldtotex) + tempwall.topmod;
+					
+					while(toptx < 0) 
 					{ 
-						h2t=tempwall.topoffset;
-						h2bt=tempwall.topbott;
-						toptex=tempwall.toptex;
-						toptx=tempwall.tophoriz+(int)(s*tempwall.length*worldtotex)+tempwall.topmod;
-						
-						while(toptx<0) 
-						{ 
-							toptx+=(*(textures+toptex))->width; 
-							tempwall.topmod+=(*(textures+toptex))->width; 
-						}
-						while(toptx>=(*(textures+toptex))->width) 
-						{	
-							toptx-=(*(textures+toptex))->width; 
-							tempwall.topmod-=(*(textures+toptex))->width;
-						}
-						texwall(x,h2i,h2bi,toptex,toptx,h2t,h2bt,miny,maxy,d*5);
-						
+						toptx += toptex->width; 
+						tempwall.topmod += toptex->width; 
 					}
+					while(toptx >= toptex->width) 
+					{	
+						toptx -= toptex->width; 
+						tempwall.topmod -= toptex->width;
+					}
+					texwall(x, h2i, h2bi, toptex, toptx, h2t, h2bt, miny, maxy, d*5);
+				}
 			}
 			else 
 			{
-				h2bi=miny;
+				h2bi = miny;
 			}
 
-			if(h1bi<=maxy)
+			if(h1bi <= maxy)
 			{
-				if(h1bi<h1i) 
+				if(h1bi < h1i) 
 				{ 
-					h1bt=tempwall.bottomoffset;
-					h1t=tempwall.bottombott;
-					botttex=tempwall.botttex;
-					botttx=tempwall.botthoriz+(int)(s*tempwall.length*worldtotex)+tempwall.bottmod;
-					while(botttx<0) 
+					h1bt = tempwall.bottomoffset;
+					h1t = tempwall.bottombott;
+					botttex = tempwall.botttex;
+					botttx = tempwall.botthoriz + (int)(s * tempwall.length * worldtotex) + tempwall.bottmod;
+					while(botttx < 0) 
 					{ 
-						botttx+=(*(textures+botttex))->width; 
-						tempwall.bottmod+=(*(textures+botttex))->width; 
+						botttx += botttex->width; 
+						tempwall.bottmod += botttex->width; 
 					}
-					while(botttx>=(*(textures+botttex))->width) 
+					while(botttx >= botttex->width) 
 					{ 
-						botttx-=(*(textures+botttex))->width; 
-						tempwall.bottmod-=(*(textures+botttex))->width;
+						botttx -= botttex->width; 
+						tempwall.bottmod -= botttex->width;
 					}
 					
-					texwall(x,h1bi,h1i,botttex,botttx,h1bt,h1t,miny,maxy, d*5);
+					texwall(x, h1bi, h1i, botttex, botttx, h1bt, h1t, miny, maxy, d*5);
 				}	
 			}
 			else 
 			{
-				h1bi=maxy;
+				h1bi = maxy;
 			}
 	
-			if(h1bi>h1i) h1bi=h1i;
-			if(h2bi<h2i) h2bi=h2i;
+			if(h1bi > h1i) h1bi = h1i;
+			if(h2bi < h2i) h2bi = h2i;
 		
-			if(h2bi>=maxy || h1bi<=miny) keepgoing=0;
-			sector=sectors+tempwall.adjoin;
-			ignore=tempwall.mirror;
-			miny=h2bi;
-			maxy=h1bi;
+			if(h2bi>=maxy || h1bi<=miny) keepgoing = 0;
+			sector = tempwall.adjoin;
+			ignore = tempwall.mirror;
+			miny = h2bi;
+			maxy = h1bi;
 		}
 	}
 }

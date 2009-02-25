@@ -16,11 +16,19 @@ struct Point {
 	double y;
 };
 
+struct Texture {
+	int width;
+	int height;
+	UCHAR *data;
+};
+
+struct Sector;
+
 struct Wall {
 	struct Point start;
 	struct Point end;
 	int flags;
-	int adjoin;
+	Sector *adjoin;
 	int mirror;
 	double length;
 	int tophoriz;
@@ -35,9 +43,9 @@ struct Wall {
 	int topmod;
 	int midmod;
 	int bottmod;
-	int toptex;
-	int midtex;
-	int botttex;
+	Texture *toptex;
+	Texture *midtex;
+	Texture *botttex;
 	double soffset;
 	DWORD topcol;
 	DWORD midcol;
@@ -51,8 +59,8 @@ struct Sector {
 	int numwalls;
 	int lastwall;
 	int beenin;
-	int ceiltex;
-	int floortex;
+	Texture *ceiltex;
+	Texture *floortex;
 	struct Wall *walls;
 
 	int fy;
@@ -68,13 +76,7 @@ struct Player {
 	double height;
 	double fromfloor;
 	double angle;
-	int sector;
-};
-
-struct Texture {
-	int width;
-	int height;
-	UCHAR *data;
+	Sector *sector;
 };
 
 struct MapInfo {

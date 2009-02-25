@@ -153,11 +153,11 @@ void LoadLevel()
 		free(value);
 		
 		value=GetValue(line,&pos2,&error);
-		sectors[i].ceiltex=atoi(value);
+		sectors[i].ceiltex=textures[atoi(value)];
 		free(value);
 			
 		value=GetValue(line,&pos2,&error);
-		sectors[i].floortex=atoi(value);
+		sectors[i].floortex=textures[atoi(value)];
 		free(value);
 		
 		free(line);
@@ -165,6 +165,8 @@ void LoadLevel()
 
 		for(j=0;j<sectors[i].numwalls;j++)
 		{
+			int v;
+
 			line=GetNonEmptyLine(data,&pos,size,&error);
 			pos2=0;
 
@@ -193,7 +195,9 @@ void LoadLevel()
 			free(value);
 
 			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].adjoin=atoi(value);
+			v = atoi(value);
+			if(v == -1) sectors[i].walls[j].adjoin = NULL;
+			else		sectors[i].walls[j].adjoin = &sectors[v];
 			free(value);
 
 			value=GetValue(line,&pos2,&error);
@@ -201,7 +205,9 @@ void LoadLevel()
 			free(value);
 		
 			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].toptex=atoi(value);
+			v = atoi(value);
+			if(v == -1) sectors[i].walls[j].toptex = NULL;
+			else		sectors[i].walls[j].toptex = textures[v];
 			free(value);
 		
 			value=GetValue(line,&pos2,&error);
@@ -213,7 +219,9 @@ void LoadLevel()
 			free(value);
 		
 			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].midtex=atoi(value);
+			v = atoi(value);
+			if(v == -1) sectors[i].walls[j].midtex = NULL;
+			else		sectors[i].walls[j].midtex = textures[v];
 			free(value);
 		
 			value=GetValue(line,&pos2,&error);
@@ -225,7 +233,9 @@ void LoadLevel()
 			free(value);
 
 			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].botttex=atoi(value);
+			v = atoi(value);
+			if(v == -1) sectors[i].walls[j].botttex = NULL;
+			else		sectors[i].walls[j].botttex = textures[v];
 			free(value);
 		
 			value=GetValue(line,&pos2,&error);
@@ -249,7 +259,7 @@ void LoadLevel()
 	player.y=-10;
 	player.height=6;
 	player.fromfloor=6;
-	player.sector=0;
+	player.sector=&sectors[0];
 	player.angle=1;
 
 	mapinfo.rotate=0;
@@ -262,30 +272,30 @@ void DoWallStuff()
 	struct Sector *temp;
 	int i;
 	int sector;
-	double x1,y1,x2,y2;
-	for(sector=0;sector<numsectors;sector++)
+	double x1, y1, x2, y2;
+	for(sector=0; sector<numsectors; sector++)
 	{
-		temp=sectors+sector;
+		temp = &sectors[sector];
 //		for(i=0;i<VSIZE;i++) temp->floor[i]=-1;
 //		for(i=0;i<VSIZE;i++) temp->ceil[i]=-1;
-		temp->beenin=0;
-		for(i=0;i<temp->numwalls;i++)
+		temp->beenin = 0;
+		for(i=0; i<temp->numwalls; i++)
 		{
-			if((temp->walls+i)->flags==WALL_ADJOINED) 
-				(temp->walls+i)->topbott=(temp->walls+i)->topoffset+(temp->ceilingheight-(sectors+(temp->walls+i)->adjoin)->ceilingheight)*worldtotex;
-			(temp->walls+i)->midbott=(temp->walls+i)->midoffset+(temp->ceilingheight-temp->floorheight)*worldtotex;
-			if((temp->walls+i)->flags==WALL_ADJOINED)
-				(temp->walls+i)->bottombott=(temp->walls+i)->bottomoffset+((sectors+(temp->walls+i)->adjoin)->floorheight-temp->floorheight)*worldtotex;
+			if(temp->walls[i].flags == WALL_ADJOINED) 
+				temp->walls[i].topbott = temp->walls[i].topoffset + (temp->ceilingheight - temp->walls[i].adjoin->ceilingheight) * worldtotex;
+			temp->walls[i].midbott = temp->walls[i].midoffset + (temp->ceilingheight - temp->floorheight) * worldtotex;
+			if(temp->walls[i].flags == WALL_ADJOINED)
+				temp->walls[i].bottombott = temp->walls[i].bottomoffset + (temp->walls[i].adjoin->floorheight - temp->floorheight) * worldtotex;
 
-			x1=(temp->walls+i)->start.x;			
-			y1=(temp->walls+i)->start.y;			
-			x2=(temp->walls+i)->end.x;			
-			y2=(temp->walls+i)->end.y;
-			(temp->walls+i)->length=sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
-			(temp->walls+i)->soffset=2/(temp->walls+i)->length;
-			(temp->walls+i)->topmod=0;
-			(temp->walls+i)->midmod=0;
-			(temp->walls+i)->bottmod=0;
+			x1 = temp->walls[i].start.x;			
+			y1 = temp->walls[i].start.y;			
+			x2 = temp->walls[i].end.x;			
+			y2 = temp->walls[i].end.y;
+			temp->walls[i].length = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+			temp->walls[i].soffset = 2 / temp->walls[i].length;
+			temp->walls[i].topmod = 0;
+			temp->walls[i].midmod = 0;
+			temp->walls[i].bottmod = 0;
 		}
 	}
 }
