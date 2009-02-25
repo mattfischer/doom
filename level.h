@@ -1,18 +1,36 @@
-void LoadLevel();
-void DoWallStuff();
+#ifndef LEVEL_H
+#define LEVEL_H
 
-struct Sector *sectors;
-struct Player player;
+struct Texture;
+struct Sector;
 
-extern void DebugString(char*);
-extern struct Texture *LoadBMP(char*,int,int);
-extern int worldtotex;
-extern int *activesectors;
+struct Player {
+	double x;
+	double y;
+	double height;
+	double fromfloor;
+	double angle;
+	Sector *sector;
+};
+
+struct Level {
+	Texture *textures;
+	int numTextures;
+
+	Sector *sectors;
+	int numSectors;
+
+	Player *player;
+};
+
+Level *LoadLevel();
+
+struct MapInfo {
+	int show;
+	int rotate;
+	double zoom;
+};
 
 extern struct MapInfo mapinfo;
 
-struct Texture **textures;
-int numtextures;
-int numsectors;
-
-int ubermode=1;
+#endif

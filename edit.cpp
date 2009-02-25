@@ -1,7 +1,16 @@
 #include "global.h"
 #include "edit.h"
+#include "World.h"
+#include "Level.h"
 
-void SelectPoint(int x, int y)
+Point *point1=NULL;
+Point *point2=NULL;
+Point *point3=NULL;
+Point *point4=NULL;
+Point screenpoint;
+bool pointselected;
+
+void SelectPoint(Level *level, int x, int y)
 {
 	int i, j;
 	int x0, y0;
@@ -12,23 +21,25 @@ void SelectPoint(int x, int y)
 	point4 = NULL;
 	pointselected = false;
 
-	for(i=0; i<numsectors; i++)
+	for(i=0; i<level->numSectors; i++)
 	{
-		for(j=0; j<sectors[i].numwalls; j++)
+		Sector *sector = &level->sectors[i];
+
+		for(j=0; j<sector->numWalls; j++)
 		{
-			x0 = (sectors[i].walls[j].start.x - player.x) * mapinfo.zoom + 320;
-			y0 = -(sectors[i].walls[j].start.y - player.y) * mapinfo.zoom + 240;
+			x0 = (sector->walls[j].start.x - level->player->x) * mapinfo.zoom + 320;
+			y0 = -(sector->walls[j].start.y - level->player->y) * mapinfo.zoom + 240;
 			if(abs(x0 - x)<3 && abs(y0 - y)<3)
 			{
-				point1 = &(sectors[i].walls[j].start);
-				point2 = &(sectors[i].walls[(j + sectors[i].numwalls - 1) % sectors[i].numwalls].end);
+				point1 = &(sector->walls[j].start);
+				point2 = &(sector->walls[(j + sector->numWalls - 1) % sector->numWalls].end);
 				screenpoint.x = x0;
 				screenpoint.y = y0;
 				pointselected = true;
-				if(sectors[i].walls[j].flags&WALL_ADJOINED || sectors[i].walls[(j + 1) % sectors[i].numwalls].flags&WALL_ADJOINED)
+				if(sector->walls[j].flags&WALL_ADJOINED || sector->walls[(j + 1) % sector->numWalls].flags&WALL_ADJOINED)
 				{
-					point3 = &(sectors[i].walls[j].adjoin->walls[sectors[i].walls[j].mirror].end);
-					point4 = &(sectors[i].walls[j].adjoin->walls[(sectors[i].walls[j].mirror + sectors[i].walls[j].adjoin->numwalls - 1) % sectors[i].walls[j].adjoin->numwalls].start);
+					point3 = &(sector->walls[j].adjoin->walls[sector->walls[j].mirror].end);
+					point4 = &(sector->walls[j].adjoin->walls[(sector->walls[j].mirror + sector->walls[j].adjoin->numWalls - 1) % sector->walls[j].adjoin->numWalls].start);
 				}
 			}
 			if(pointselected) break;
@@ -37,12 +48,12 @@ void SelectPoint(int x, int y)
 	}
 }
 
-void MovePoints(int x, int y)
+void MovePoints(Player *player, int x, int y)
 {
 	float x1, y1;
 
-	x1=((float)(x - 320)) / mapinfo.zoom + player.x;
-	y1=((float)(240 - y)) / mapinfo.zoom + player.y;
+	x1=((float)(x - 320)) / mapinfo.zoom + player->x;
+	y1=((float)(240 - y)) / mapinfo.zoom + player->y;
 
 	if(point1 != NULL) 
 	{

@@ -1,85 +1,9 @@
 #include "global.h"
 #include "ddraw.h"
 
-int SetupDirectDraw()
- {
+#include "Debug.h"
 
-
-	HRESULT ddrval;
-	DDSURFACEDESC ddSD;
-	DDSCAPS ddsCaps;
-
-	ddrval=DirectDrawCreate(NULL,&lpDD,NULL);
-
-	if(ddrval!=DD_OK)
-		{
-			HandleBadResult(ddrval,1);
-			return 0;
-		}
-
-	ddrval=lpDD->SetCooperativeLevel(hMainWindow,DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_NOWINDOWCHANGES);
-
-	if(ddrval!=DD_OK)
-		{
-			HandleBadResult(ddrval,2);
-			return 0;
-		}
-	ddrval=lpDD->SetDisplayMode(HSIZE,VSIZE,32);
-
-	if(ddrval!=DD_OK)
-		{
-				HandleBadResult(ddrval,3);
-				return 0;
-		}
-	ZeroMemory((LPVOID)&ddSD,(DWORD)sizeof(ddSD));
-	ddSD.dwSize=sizeof(ddSD);
-	ddSD.dwFlags=DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-	ddSD.ddsCaps.dwCaps=DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
-	ddSD.dwBackBufferCount=2;
-
-
-	ddrval=lpDD->CreateSurface(&ddSD,&lpDDSPrimary,NULL);
-
-	if(ddrval!=DD_OK)
-		{
-				HandleBadResult(ddrval,4);
-				return 0;
-		}
-	ddsCaps.dwCaps=DDSCAPS_BACKBUFFER;
-
-	ddrval=lpDDSPrimary->GetAttachedSurface(&ddsCaps,&lpDDSBack);
-
-	if(ddrval!=DD_OK)
-		{
-
-			HandleBadResult(ddrval,5);
-			return 0;
-		}
-	ddsCaps.dwCaps=DDSCAPS_FLIP;
-	lpDDSBack->GetAttachedSurface(&ddsCaps,&lpDDSBack);
-
-	ClearSurface(lpDDSBack);
-	FlipSurfaces();
-	ClearSurface(lpDDSBack);
-
-	return 1;
-
-}
-
-
-void CleanupDirectDraw()
-{
-	if(lpDD!=NULL)
-		{
-			if(lpDDSPrimary!=NULL)
-				{
-					lpDDSPrimary->Release();
-					lpDDSPrimary=NULL;
-				}
-			lpDD->Release();
-			lpDD=NULL;
-		}
-}
+extern HANDLE DebugFile;
 
 void HandleBadResult(int ddrval,int level)
 {
@@ -116,6 +40,85 @@ void HandleBadResult(int ddrval,int level)
 	}
 }
 
+GraphicsContext *SetupDirectDraw(HWND hWnd)
+{
+	GraphicsContext *context = new GraphicsContext;
+	HRESULT ddrval;
+	DDSURFACEDESC ddSD;
+	DDSCAPS ddsCaps;
+
+	ddrval = DirectDrawCreate(NULL, &context->lpDD, NULL);
+
+	if(ddrval != DD_OK)
+	{
+		HandleBadResult(ddrval, 1);
+		delete context;
+		return NULL;
+	}
+
+	ddrval = context->lpDD->SetCooperativeLevel(hWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_NOWINDOWCHANGES);
+
+	if(ddrval != DD_OK)
+	{
+		HandleBadResult(ddrval, 2);
+		delete context;
+		return NULL;
+	}
+	ddrval = context->lpDD->SetDisplayMode(HSIZE, VSIZE, 32);
+
+	if(ddrval != DD_OK)
+	{
+		HandleBadResult(ddrval, 3);
+		delete context;
+		return NULL;
+	}
+
+	ZeroMemory((LPVOID)&ddSD, (DWORD)sizeof(ddSD));
+	ddSD.dwSize = sizeof(ddSD);
+	ddSD.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+	ddSD.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
+	ddSD.dwBackBufferCount = 2;
+
+
+	ddrval = context->lpDD->CreateSurface(&ddSD, &context->lpDDSPrimary, NULL);
+
+	if(ddrval != DD_OK)
+	{
+		HandleBadResult(ddrval, 4);
+		delete context;
+		return NULL;
+	}
+	ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
+
+	ddrval = context->lpDDSPrimary->GetAttachedSurface(&ddsCaps, &context->lpDDSBack);
+
+	if(ddrval != DD_OK)
+	{
+		HandleBadResult(ddrval, 5);
+		delete context;
+		return NULL;
+	}
+
+	ddsCaps.dwCaps = DDSCAPS_FLIP;
+	context->lpDDSBack->GetAttachedSurface(&ddsCaps, &context->lpDDSBack);
+
+	return context;
+}
+
+
+void CleanupDirectDraw(GraphicsContext *context)
+{
+	if(context->lpDD)
+	{
+		if(context->lpDDSPrimary)
+			{
+				context->lpDDSPrimary->Release();
+			}
+		context->lpDD->Release();
+	}
+
+	delete context;
+}
 
 void ClearSurface(LPDIRECTDRAWSURFACE Surface)
 {
@@ -129,57 +132,49 @@ void ClearSurface(LPDIRECTDRAWSURFACE Surface)
 }
 
 
-void FlipSurfaces()
+void FlipSurfaces(GraphicsContext *context)
 {
 	int ddrval;
-	ddrval=lpDDSPrimary->Flip(NULL,0);
+	ddrval = context->lpDDSPrimary->Flip(NULL,0);
 }
 
-
-
-void RestoreStuff()
+void RestoreStuff(GraphicsContext *context)
 {
 #ifdef NOVIS
 	return;
 #endif
 
- DisplayMode(1);
- lpDDSPrimary->Restore();
- lpDDSBack->Restore();
+ DisplayMode(context, 1);
+ context->lpDDSPrimary->Restore();
+ context->lpDDSBack->Restore();
 }
 
-void DisplayMode(int mode)
+void DisplayMode(GraphicsContext *context, int mode)
 {
 #ifdef NOVIS
 	return;
 #endif
-	if(mode==0) lpDD->RestoreDisplayMode();
-	if(mode==1) lpDD->SetDisplayMode(HSIZE,VSIZE,32);
+	if(mode==0) context->lpDD->RestoreDisplayMode();
+	if(mode==1) context->lpDD->SetDisplayMode(HSIZE,VSIZE,32);
 }
 
-struct Texture *LoadBMP(char *filename,int width,int height)
+void LockBack(GraphicsContext *context)
 {
-	HANDLE BitmapFile;
-	DWORD			 dummy;
-	int 			 y,x;
-	UCHAR 			 tempdata[1200];
-	struct Texture *tex;
+	DDSURFACEDESC ddsd;
+	DWORD ddrval;
+	ddsd.dwSize=sizeof(DDSURFACEDESC);
+	
+	ddrval = context->lpDDSBack->Lock(NULL,&ddsd,DDLOCK_WAIT,NULL);
+	if(ddrval != DD_OK) HandleBadResult(ddrval, 0);
 
-	tex=(struct Texture*)malloc(sizeof(struct Texture));
-	tex->width=width;
-	tex->height=height;
-	BitmapFile=CreateFile(filename,GENERIC_READ,0,NULL,OPEN_EXISTING,0,NULL);
-	if(BitmapFile==INVALID_HANDLE_VALUE) DebugString("Could not open texture file\n");
-	tex->data=(UCHAR*)malloc(width*height*3);
-	DebugString("Reading in file...\n");
-	for(y=0;y<height;y++)
-		{
-			for(x=0;x<3;x++)
-				{
-					ReadFile(BitmapFile,tempdata,width,&dummy,NULL);
-					memcpy(tex->data+3*y*width+width*x,tempdata,width);
-				}
-	}	
-	CloseHandle(BitmapFile);
-	return tex;
+	context->vidmem = (UCHAR*)ddsd.lpSurface;
+	context->pitch = ddsd.lPitch;
 }
+
+void UnlockBack(GraphicsContext *context)
+{
+	context->lpDDSBack->Unlock(NULL);
+	context->vidmem=NULL;
+	context->pitch=0;
+}
+

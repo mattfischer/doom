@@ -1,6 +1,8 @@
-void DoWallCollisions(double,double);
+#ifndef PHYSICS_H
+#define PHYSICS_H
 
-extern struct Player player;
-extern struct Sector *sectors;
-extern void DebugString(char*);
-extern void line(int,int,int,int,DWORD);
+struct Player;
+
+void DoWallCollisions(Player*, double,double);
+
+#endif

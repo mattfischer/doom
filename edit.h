@@ -1,16 +1,9 @@
-#include "global.h"
+#ifndef EDIT_H
+#define EDIT_H
 
-void SelectPoints(int,int);
+struct Level;
+struct Player;
+void SelectPoint(Level *,int,int);
+void MovePoints(Player *player, int x, int y);
 
-Point *point1=NULL;
-Point *point2=NULL;
-Point *point3=NULL;
-Point *point4=NULL;
-Point screenpoint;
-bool pointselected;
-
-extern MapInfo mapinfo;
-
-extern struct Sector *sectors;
-extern int numsectors;
-extern struct Player player;
+#endif

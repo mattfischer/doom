@@ -1,6 +1,18 @@
 #include "global.h"
 #include "debug.h"
 
+HANDLE DebugFile;
+
+void DebugInit()
+{
+	DebugFile=CreateFile("debug.log",GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+}
+
+void DebugShutdown()
+{
+	CloseHandle(DebugFile);
+}
+
 void DebugString(char *buffer)
 {
 	DWORD dummy;

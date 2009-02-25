@@ -2,23 +2,30 @@
 #include "global.h"
 #include "game.h"
 
+#include "Level.h"
+#include "Debug.h"
+#include "DDraw.h"
+#include "Draw.h"
+#include "Input.h"
+
 int frames=0;
 int flip=1;
+Level *level;
+unsigned long frametimer;
+DWORD dummy;
+unsigned long timer;
+
 //#define FunctionLog
 int Game_Init()
 {
 	#ifdef FunctionLog
 	DebugString("LoadLevel()\n");
 	#endif
-	LoadLevel();
+	level = LoadLevel();
 		
 	#ifdef FunctionLog
 	DebugString("SetupDirectDraw()\n");
 	#endif
-
-#ifndef NOVIS
-	SetupDirectDraw();
-#endif
 
 	InitWalls();
 
@@ -28,28 +35,28 @@ int Game_Init()
 	return 0;
 }
 
-void Game_Main()
+void Game_Main(GraphicsContext *context)
 {
 	char buffer[100];
 #ifndef NOVIS
-	LockBack();
+	LockBack(context);
 #endif
 	#ifdef FunctionLog
 	DebugString("ProcessInput()\n");
 	#endif
-	ProcessInput();
+	ProcessInput(level->player);
 	#ifdef FunctionLog
 	DebugString("DrawScreen()\n");
 	#endif
-	DrawScreen();
+	DrawScreen(level, context);
 #ifndef NOVIS
-	UnlockBack();
+	UnlockBack(context);
 #endif
 	#ifdef FunctionLog
 	DebugString("FlipSurfaces()\n");
 	#endif
 #ifndef NOVIS
-	FlipSurfaces();
+	FlipSurfaces(context);
 #endif
 	
 	frames++;
@@ -64,10 +71,9 @@ void Game_Main()
 
 }
 
-void Game_Shutdown()
+void Game_Shutdown(GraphicsContext *context)
 {
-	
-	DisplayMode(0);
-	CleanupDirectDraw();
-	CloseHandle(DebugFile);
+	DisplayMode(context, 0);
+	CleanupDirectDraw(context);
+	DebugShutdown();
 }

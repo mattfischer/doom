@@ -1,14 +1,10 @@
+#ifndef INPUT_H
+#define INPUT_H
+
 #include <windows.h>
 #include <math.h>
 
-extern void DebugString(char*);
-extern void DoWallCollisions(double,double);
+struct Player;
+void ProcessInput(Player *player);
 
-extern struct Player player;
-extern unsigned long frametimer;
-extern int horizon;
-extern int showmap;
-extern struct MapInfo mapinfo;
-
-void ProcessInput();
-
+#endif

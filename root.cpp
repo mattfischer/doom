@@ -1,5 +1,21 @@
 #include "global.h"
 #include "root.h"
+#include "Level.h"
+#include "Edit.h"
+#include "Debug.h"
+#include "DDraw.h"
+#include "Game.h"
+
+extern Level *level;
+GraphicsContext *context;
+
+HWND hMainWindow;
+int rungame;
+int started;
+extern HANDLE DebugFile;
+extern LONG timer;
+extern int frames;
+extern bool pointselected;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -7,10 +23,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	{
 		case WM_MOUSEMOVE:
 			if(pointselected && wParam&MK_LBUTTON)
-				MovePoints(LOWORD(lParam), HIWORD(lParam));
+				MovePoints(level->player, LOWORD(lParam), HIWORD(lParam));
 			return 0;
 		case WM_LBUTTONDOWN:
-			SelectPoint(LOWORD(lParam),HIWORD(lParam));
+			SelectPoint(level, LOWORD(lParam),HIWORD(lParam));
 			return 0;
 		case WM_DESTROY:
 
@@ -22,14 +38,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			if(wParam==TRUE)
 			{
 				ShowWindow(hMainWindow,SW_RESTORE);
-				RestoreStuff();
+				RestoreStuff(context);
 				rungame=1;
 			}
 			if(wParam==FALSE)
 			{
 				ShowWindow(hMainWindow,SW_MINIMIZE);
 				rungame=0;
-				DisplayMode(0);
+				DisplayMode(context, 0);
 			}
 			return 0;
 
@@ -46,8 +62,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 	char* szAppName="Doom thing";
 	HINSTANCE hInstance;
 	
-	DebugFile=CreateFile("debug.log",GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
-	
+	DebugInit();
+		
 	
 	hInstance=hInst;
 	started=0;
@@ -89,12 +105,11 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 
 	UpdateWindow(hMainWindow);
 
-
-
 	ShowCursor(TRUE);
 	rungame=1;
-	if(Game_Init()) rungame=0;
+	context = SetupDirectDraw(hMainWindow);
 
+	if(Game_Init()) rungame=0;
 	
 	started=1;
 	while(1)
@@ -106,12 +121,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 					DispatchMessage(&Msg);
 				}
 			if(Msg.message==WM_QUIT) break;
-			if(rungame) Game_Main();
+			if(rungame) Game_Main(context);
 	
 	}
 
 
-	Game_Shutdown();
+	Game_Shutdown(context);
 	ShowCursor(TRUE);
 
 	return (Msg.wParam);

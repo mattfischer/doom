@@ -1,13 +1,11 @@
 #include "global.h"
 #include "physics.h"
+#include "World.h"
+#include "Level.h"
+
 #include <math.h>
 
-	double parxb,paryb;
-	double perxb,peryb;
-	double pxb,pyb;
-	int thesector,thewall;
-
-void DoWallCollisions(double newx, double newy)
+void DoWallCollisions(Player *player, double newx, double newy)
 {
 	Sector *sector;
 	Wall *wall;
@@ -21,29 +19,29 @@ void DoWallCollisions(double newx, double newy)
 	double dper, dpwall;
 	int i;
 	char buffer[100];
-	int repeat = 1;
+	bool repeat = true;
 	int *walllist;
 	Sector *newsector;
 
-	sector = player.sector;
-	newsector = player.sector;
-	walllist = (int*)malloc(sizeof(int)*sector->numwalls);
-	for(i=0; i<sector->numwalls; i++) walllist[i] = 0;
+	sector = player->sector;
+	newsector = player->sector;
+	walllist = new int[sector->numWalls];
+	for(i=0; i<sector->numWalls; i++) walllist[i] = 0;
 	
-	px = newx - player.x;
-	py = newy - player.y;
+	px = newx - player->x;
+	py = newy - player->y;
 	while(repeat)
 	{
-		px = newx - player.x;
-		py = newy - player.y;
+		px = newx - player->x;
+		py = newy - player->y;
 		
-		p0x = player.x;
-		p0y = player.y;
+		p0x = player->x;
+		p0y = player->y;
 		p1x = newx;
 		p1y = newy;
 
 		
-		for(i=0; i<sector->numwalls; i++)
+		for(i=0; i<sector->numWalls; i++)
 		{
 			repeat = 0;
 			wall = &sector->walls[i];
@@ -83,15 +81,15 @@ void DoWallCollisions(double newx, double newy)
 				walllist[i] = 1;
 				if(wall->flags == WALL_ADJOINED)
 				{
-					if(wall->adjoin->floorheight - (player.height - player.fromfloor) < 1)
-						if(wall->adjoin->ceilingheight - wall->adjoin->floorheight > player.fromfloor)
+					if(wall->adjoin->floorheight - (player->height - player->fromfloor) < 1)
+						if(wall->adjoin->ceilingheight - wall->adjoin->floorheight > player->fromfloor)
 						{
 							if(dpwall - dper > 0) continue;
 												
-							player.sector = wall->adjoin;
+							player->sector = wall->adjoin;
 							newsector = wall->adjoin;
-							player.height = wall->adjoin->floorheight + player.fromfloor;
-							repeat = 1;
+							player->height = wall->adjoin->floorheight + player->fromfloor;
+							repeat = true;
 							break;
 							
 						}
@@ -113,6 +111,6 @@ void DoWallCollisions(double newx, double newy)
 		}
 	}
 
-	player.x = newx;
-	player.y = newy;	
+	player->x = newx;
+	player->y = newy;	
 }

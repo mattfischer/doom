@@ -2,18 +2,23 @@
 #include "level.h"
 #include <math.h>
 
+#include "World.h"
+#include "Texture.h"
+
+struct MapInfo mapinfo;
+
 char *GetFileLine(char *input, int *start, int size)
 {
 	int i;
 	char *newdata;
-	i=*start;
+	i = *start;
 	while(input[i]!='\n' && input[i]!='\r' && i<size) i++;
 	i++;
-	newdata=(char*)malloc(i-*start);
-	memcpy(newdata,input+*start,i-*start-1);
-	memcpy(newdata+i-*start-1,"\0",1);
-	*start=i+1;
-	if(*start>size) *start=size;
+	newdata = new char[i-*start];
+	memcpy(newdata, input + *start, i - *start - 1);
+	memcpy(newdata + i - *start - 1, "\0", 1);
+	*start = i + 1;
+	if(*start > size) *start = size;
 	return newdata;
 }
 
@@ -22,270 +27,82 @@ char *RemoveComments(char *input)
 	int i=0;
 	char *newdata;
 	while(input[i]!='\0' && input[i]!='#') i++;
-	newdata=(char*)malloc(i+1);
-	memcpy(newdata,input,i);
-	memcpy(newdata+i,"\0",1);
-	free(input);
+	newdata = new char[i+1];
+	memcpy(newdata, input, i);
+	memcpy(newdata + i, "\0", 1);
+	delete[] input;
+
 	return newdata;
 }
 
-char *GetValue(char *input, int *start, int *error)
+char *GetValue(char *input, int *start, bool *error)
 {
-	int i=*start;
+	int i = *start;
 	int i2;
 	char *newdata;
-	*error=0;
-	if(input[i]=='\0')
+	*error = false;
+	if(input[i] == '\0')
 	{
-		*error=1;
+		*error = true;
 		return 0;
 	}
-	if(input[i]==' ') 
+	if(input[i] == ' ') 
 	{
 		while(input[i]==' ' && input[i]!='\0') i++;
-		if(input[i]=='\0') 
+		if(input[i] == '\0') 
 		{
-			*error=1;
+			*error = true;
 			return 0;
 		}
 	}
-	i2=i;
+	i2 = i;
 	while(input[i2]!=' ' && input[i2]!='\0') i2++;
-	newdata=(char*)malloc(i2-i+1);
-	memcpy(newdata,input+i,i2-i);
-	memcpy(newdata+i2-i,"\0",1);
-	*start=i2;
+	newdata = new char[i2-i+1];
+	memcpy(newdata, input + i, i2 - i);
+	memcpy(newdata + i2 - i, "\0", 1);
+	*start = i2;
 	return newdata;
 }
 
-char *GetNonEmptyLine(char *input, int *start,int size, int *error)
+char *GetNonEmptyLine(char *input, int *start,int size, bool *error)
 {
 	char *newdata;
 	
-	*error=0;
+	*error = 0;
 	while(1)
 	{
-	    if(*start==size)
+	    if(*start == size)
 		{
-			*error=1;
+			*error = true;
 			return 0;
 		}
-		newdata=GetFileLine(input,start,size);
-		newdata=RemoveComments(newdata);
-		if(newdata[0]!='\0') break;
-		free(newdata);
+		newdata = GetFileLine(input, start, size);
+		newdata = RemoveComments(newdata);
+		if(newdata[0] != '\0') break;
+		delete[] newdata;
 	}
 	return newdata;
 }
-void LoadLevel()
-{
-	HANDLE levelfile;
-	char *data;
-	int size;
-	int pos=0;
-	int pos2=0;
-	char *line;
-	char *value;
-	DWORD dummy;
-	int error;
-	int i,j;
 
-	levelfile=CreateFile("level.dat",GENERIC_READ,0,NULL,OPEN_EXISTING,0,NULL);
-	size=GetFileSize(levelfile,NULL);
-	data=(char*)malloc(size);
-	ReadFile(levelfile,data,size,&dummy,NULL);
-	CloseHandle(levelfile);
-
-	line=GetNonEmptyLine(data,&pos,size,&error);
-	pos2=0;
-	value=GetValue(line,&pos2,&error);
-	numtextures=atoi(value);
-	free(value);
-	free(line);
-	textures=(struct Texture**)malloc(sizeof(struct Texture*)*numtextures);
-	
-	for(i=0;i<numtextures;i++)
-	{
-		line=GetNonEmptyLine(data,&pos,size,&error);
-		pos2=0;
-		
-		value=GetValue(line,&pos2,&error);
-		free(value);
-		
-		value=GetValue(line,&pos2,&error);
-		textures[i]=LoadBMP(value,32,32);
-		free(value);
-		
-		free(line);
-	}
-
-	line=GetNonEmptyLine(data,&pos,size,&error);
-	pos2=0;
-	
-	value=GetValue(line,&pos2,&error);
-	numsectors=atoi(value);
-	free(value);
-	
-	free(line);
-
-	sectors=(struct Sector*)malloc(sizeof(struct Sector)*numsectors);
-
-	for(i=0;i<numsectors;i++)
-	{
-		sectors[i].lastwall=-1;
-	
-		line=GetNonEmptyLine(data,&pos,size,&error);
-		pos2=0;
-	
-		value=GetValue(line,&pos2,&error);
-		free(value);
-		
-		value=GetValue(line,&pos2,&error);
-		sectors[i].ceilingheight=atof(value);
-		free(value);
-		
-		value=GetValue(line,&pos2,&error);
-		sectors[i].floorheight=atof(value);
-		free(value);
-		
-		value=GetValue(line,&pos2,&error);
-		sectors[i].numwalls=atoi(value);
-		free(value);
-		
-		value=GetValue(line,&pos2,&error);
-		sectors[i].ceiltex=textures[atoi(value)];
-		free(value);
-			
-		value=GetValue(line,&pos2,&error);
-		sectors[i].floortex=textures[atoi(value)];
-		free(value);
-		
-		free(line);
-		sectors[i].walls=(struct Wall*)malloc(sizeof(struct Wall)*sectors[i].numwalls);
-
-		for(j=0;j<sectors[i].numwalls;j++)
-		{
-			int v;
-
-			line=GetNonEmptyLine(data,&pos,size,&error);
-			pos2=0;
-
-			value=GetValue(line,&pos2,&error);
-			free(value);
-
-			value=GetValue(line,&pos2,&error);
-			if(strcmp(value,"NORMAL")==0) sectors[i].walls[j].flags=WALL_NORMAL;
-			if(strcmp(value,"ADJOINED")==0) sectors[i].walls[j].flags=WALL_ADJOINED;
-			free(value);
-
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].start.x=atof(value);
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].start.y=atof(value);
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].end.x=atof(value);
-			free(value);
-
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].end.y=atof(value);
-			free(value);
-
-			value=GetValue(line,&pos2,&error);
-			v = atoi(value);
-			if(v == -1) sectors[i].walls[j].adjoin = NULL;
-			else		sectors[i].walls[j].adjoin = &sectors[v];
-			free(value);
-
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].mirror=atoi(value);
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			v = atoi(value);
-			if(v == -1) sectors[i].walls[j].toptex = NULL;
-			else		sectors[i].walls[j].toptex = textures[v];
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].tophoriz=atoi(value);
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].topoffset=atoi(value);
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			v = atoi(value);
-			if(v == -1) sectors[i].walls[j].midtex = NULL;
-			else		sectors[i].walls[j].midtex = textures[v];
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].midhoriz=atoi(value);
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].midoffset=atoi(value);
-			free(value);
-
-			value=GetValue(line,&pos2,&error);
-			v = atoi(value);
-			if(v == -1) sectors[i].walls[j].botttex = NULL;
-			else		sectors[i].walls[j].botttex = textures[v];
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].botthoriz=atoi(value);
-			free(value);
-		
-			value=GetValue(line,&pos2,&error);
-			sectors[i].walls[j].bottomoffset=atoi(value);
-			free(value);
-
-			free(line);
-		}
-
-	}
-
-	DoWallStuff();
-
-	activesectors=(int*)malloc(sizeof(int)*numsectors);
-
-	player.x=-10;
-	player.y=-10;
-	player.height=6;
-	player.fromfloor=6;
-	player.sector=&sectors[0];
-	player.angle=1;
-
-	mapinfo.rotate=0;
-	mapinfo.zoom=10;
-	mapinfo.show=0;
-}
-
-void DoWallStuff()
+static void DoWallStuff(Level *level)
 {
 	struct Sector *temp;
 	int i;
 	int sector;
 	double x1, y1, x2, y2;
-	for(sector=0; sector<numsectors; sector++)
+	for(sector=0; sector<level->numSectors; sector++)
 	{
-		temp = &sectors[sector];
+		temp = &level->sectors[sector];
 //		for(i=0;i<VSIZE;i++) temp->floor[i]=-1;
 //		for(i=0;i<VSIZE;i++) temp->ceil[i]=-1;
 		temp->beenin = 0;
-		for(i=0; i<temp->numwalls; i++)
+		for(i=0; i<temp->numWalls; i++)
 		{
 			if(temp->walls[i].flags == WALL_ADJOINED) 
-				temp->walls[i].topbott = temp->walls[i].topoffset + (temp->ceilingheight - temp->walls[i].adjoin->ceilingheight) * worldtotex;
-			temp->walls[i].midbott = temp->walls[i].midoffset + (temp->ceilingheight - temp->floorheight) * worldtotex;
+				temp->walls[i].topbott = temp->walls[i].topoffset + (temp->ceilingheight - temp->walls[i].adjoin->ceilingheight) * WORLDTOTEX;
+			temp->walls[i].midbott = temp->walls[i].midoffset + (temp->ceilingheight - temp->floorheight) * WORLDTOTEX;
 			if(temp->walls[i].flags == WALL_ADJOINED)
-				temp->walls[i].bottombott = temp->walls[i].bottomoffset + (temp->walls[i].adjoin->floorheight - temp->floorheight) * worldtotex;
+				temp->walls[i].bottombott = temp->walls[i].bottomoffset + (temp->walls[i].adjoin->floorheight - temp->floorheight) * WORLDTOTEX;
 
 			x1 = temp->walls[i].start.x;			
 			y1 = temp->walls[i].start.y;			
@@ -299,3 +116,200 @@ void DoWallStuff()
 		}
 	}
 }
+
+Level *LoadLevel()
+{
+	HANDLE levelfile;
+	char *data;
+	int size;
+	int pos=0;
+	int pos2=0;
+	char *line;
+	char *value;
+	DWORD dummy;
+	bool error;
+	int i,j;
+
+	Level *level = new Level;
+
+	levelfile = CreateFile("level.dat", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+	size = GetFileSize(levelfile, NULL);
+	data = new char[size];
+	ReadFile(levelfile, data, size, &dummy, NULL);
+	CloseHandle(levelfile);
+
+	line = GetNonEmptyLine(data, &pos, size, &error);
+	pos2 = 0;
+	value = GetValue(line, &pos2, &error);
+	level->numTextures = atoi(value);
+	delete[] value;
+	delete[] line;
+	level->textures = new Texture[level->numTextures];
+	
+	for(i=0; i<level->numTextures; i++)
+	{
+		line = GetNonEmptyLine(data, &pos, size, &error);
+		pos2 = 0;
+		
+		value = GetValue(line, &pos2, &error);
+		delete[] value;
+		
+		value = GetValue(line, &pos2, &error);
+		level->textures[i] = LoadBMP(value, 32, 32);
+		delete[] value;
+		
+		delete[] line;
+	}
+
+	line = GetNonEmptyLine(data, &pos, size, &error);
+	pos2 = 0;
+	
+	value = GetValue(line, &pos2, &error);
+	level->numSectors = atoi(value);
+	delete[] value;
+	
+	delete[] line;
+
+	level->sectors = new Sector[level->numSectors];
+
+	for(i=0; i<level->numSectors; i++)
+	{
+		level->sectors[i].lastwall = -1;
+	
+		line = GetNonEmptyLine(data, &pos, size, &error);
+		pos2 = 0;
+	
+		value = GetValue(line, &pos2, &error);
+		delete[] value;
+		
+		value = GetValue(line, &pos2, &error);
+		level->sectors[i].ceilingheight = atof(value);
+		delete[] value;
+		
+		value = GetValue(line, &pos2, &error);
+		level->sectors[i].floorheight = atof(value);
+		delete[] value;
+		
+		value = GetValue(line, &pos2, &error);
+		level->sectors[i].numWalls = atoi(value);
+		delete[] value;
+		
+		value = GetValue(line, &pos2, &error);
+		level->sectors[i].ceiltex = &level->textures[atoi(value)];
+		delete[] value;
+			
+		value = GetValue(line, &pos2, &error);
+		level->sectors[i].floortex = &level->textures[atoi(value)];
+		delete[] value;
+		
+		delete[] line;
+
+		level->sectors[i].walls = new Wall[level->sectors[i].numWalls];
+
+		for(j=0; j<level->sectors[i].numWalls; j++)
+		{
+			int v;
+			Sector *sector = &level->sectors[i];
+
+			line = GetNonEmptyLine(data, &pos, size, &error);
+			pos2 = 0;
+
+			value = GetValue(line, &pos2, &error);
+			delete[] value;
+
+			value = GetValue(line, &pos2, &error);
+			if(strcmp(value, "NORMAL") == 0) sector->walls[j].flags = WALL_NORMAL;
+			if(strcmp(value, "ADJOINED") == 0) sector->walls[j].flags = WALL_ADJOINED;
+			delete[] value;
+
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].start.x = atof(value);
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].start.y = atof(value);
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].end.x = atof(value);
+			delete[] value;
+
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].end.y = atof(value);
+			delete[] value;
+
+			value = GetValue(line, &pos2, &error);
+			v = atoi(value);
+			if(v == -1) sector->walls[j].adjoin = NULL;
+			else		sector->walls[j].adjoin = &level->sectors[v];
+			delete[] value;
+
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].mirror = atoi(value);
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			v = atoi(value);
+			if(v == -1) sector->walls[j].toptex = NULL;
+			else		sector->walls[j].toptex = &level->textures[v];
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].tophoriz = atoi(value);
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].topoffset = atoi(value);
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			v = atoi(value);
+			if(v == -1) sector->walls[j].midtex = NULL;
+			else		sector->walls[j].midtex = &level->textures[v];
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].midhoriz = atoi(value);
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].midoffset = atoi(value);
+			delete[] value;
+
+			value = GetValue(line, &pos2, &error);
+			v = atoi(value);
+			if(v == -1) sector->walls[j].botttex = NULL;
+			else		sector->walls[j].botttex = &level->textures[v];
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].botthoriz = atoi(value);
+			delete[] value;
+		
+			value = GetValue(line, &pos2, &error);
+			sector->walls[j].bottomoffset = atoi(value);
+			delete[] value;
+
+			delete[] line;
+		}
+
+	}
+
+	DoWallStuff(level);
+
+	level->player = new Player;
+
+	level->player->x = -10;
+	level->player->y = -10;
+	level->player->height = 6;
+	level->player->fromfloor = 6;
+	level->player->sector = &level->sectors[0];
+	level->player->angle = 1;
+
+	mapinfo.rotate = 0;
+	mapinfo.zoom = 10;
+	mapinfo.show = 0;
+
+	return level;
+}
+
