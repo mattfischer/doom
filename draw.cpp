@@ -32,27 +32,30 @@ int horizon = VSIZE/2;
 extern Point screenpoint;
 extern bool pointselected;
 
-void PutPixel(int x, int y, DWORD color, GraphicsContext *context)
+void PutPixel( GraphicsContext *context, int x, int y, DWORD color)
 {
 	if(x<0 || x>HSIZE-1 || y<0 || y>VSIZE-1) return;
-	*(context->vidmem+y*context->pitch+x*4)=color&0xFF;
-	*(context->vidmem+y*context->pitch+x*4+1)=(color>>8)&0xFF;
-	*(context->vidmem+y*context->pitch+x*4+2)=(color>>16)&0xFF;
 
+	UCHAR *frameBuffer = context->frameBuffer();
+	int pitch = context->pitch();
+
+	*(frameBuffer + y * pitch + x * 4) = color&0xFF;
+	*(frameBuffer + y * pitch + x * 4 + 1) = (color>>8)&0xFF;
+	*(frameBuffer + y * pitch + x * 4 + 2) = (color>>16)&0xFF;
 }
 
-void vertex(int x,int y, GraphicsContext *context)
+void vertex(GraphicsContext *context, int x, int y)
 {
 	int i,j;
 	DWORD color;
 
 	if(pointselected && screenpoint.x==x && screenpoint.y==y) color=0xFFFFFF;
 	else									 color=0xFFFF00;
-	for(i=x-2;i<x+2;i++)
-		for(j=y-2;j<y+2;j++)
-			PutPixel(i,j,color, context);
+	for(i=x-2; i<x+2; i++)
+		for(j=y-2; j<y+2; j++)
+			PutPixel(context, i, j, color);
 }
-void line(int x0,int y0,int x1,int y1,DWORD color, GraphicsContext *context)
+void line(GraphicsContext *context, int x0, int y0, int x1, int y1, DWORD color)
 {
 	int xd,yd;
 	int error;
@@ -62,96 +65,98 @@ void line(int x0,int y0,int x1,int y1,DWORD color, GraphicsContext *context)
 	int e1,e2;
 	int i,i2;
 	
-	xd=abs(x1-x0);
-	yd=abs(y1-y0);
-	x=x0;
-	y=y0;
+	xd = abs(x1 - x0);
+	yd = abs(y1 - y0);
+	x = x0;
+	y = y0;
 	
-	if(x1>x0) xi1=1; else xi1=-1;
-	if(y1>y0) yi1=1; else yi1=-1;
+	if(x1 > x0) xi1 = 1; else xi1 = -1;
+	if(y1 > y0) yi1 = 1; else yi1 = -1;
 	
-	i=0;
-	if(xd>yd) 
+	i = 0;
+	if(xd > yd) 
 	{ 
-		i2=xd;
-		error=xd/2;
-		e1=yd;
-		e2=xd;
-		xi2=xi1; 
-		yi2=0;
+		i2 = xd;
+		error = xd / 2;
+		e1 = yd;
+		e2 = xd;
+		xi2 = xi1; 
+		yi2 = 0;
 	} 
 	else
 	{
-		i2=yd;
-		error=yd/2;
-		e1=xd;
-		e2=yd;
-		xi2=0;
-		yi2=yi1;
+		i2 = yd;
+		error = yd/2;
+		e1 = xd;
+		e2 = yd;
+		xi2 = 0;
+		yi2 = yi1;
 	}
 
-	while(i!=i2)
+	while(i != i2)
 	{
-		PutPixel(x,y,color, context);
-		error+=e1;
-		if(error>e2)
+		PutPixel(context, x, y, color);
+		error += e1;
+		if(error > e2)
 		{
-			error-=e2;
-			x+=xi1;
-			y+=yi1;
+			error -= e2;
+			x += xi1;
+			y += yi1;
 		}
 		else 
 		{
-			x+=xi2;
-			y+=yi2;
+			x += xi2;
+			y += yi2;
 		}
 		i++;
 	}
 }
 
-void circle(int cx, int cy, int rad, DWORD color, GraphicsContext *context)
+void circle(GraphicsContext *context, int cx, int cy, int rad, DWORD color)
 {
 	int d;
 	int x,y;
 
-	d=3-(2*rad);
-	x=0;
-	y=rad;
+	d = 3 - (2 * rad);
+	x = 0;
+	y = rad;
 
 	while(1)
 	{
-		PutPixel(cx+x,cy+y,color, context);
-		PutPixel(cx-x,cy+y,color, context);
-		PutPixel(cx+x,cy-y,color, context);
-		PutPixel(cx-x,cy-y,color, context);
-		PutPixel(cx+y,cy+x,color, context);
-		PutPixel(cx+y,cy-x,color, context);
-		PutPixel(cx-y,cy+x,color, context);
-		PutPixel(cx-y,cy-x,color, context);
+		PutPixel(context, cx + x, cy + y, color);
+		PutPixel(context, cx - x, cy + y, color);
+		PutPixel(context, cx + x, cy - y, color);
+		PutPixel(context, cx - x, cy - y, color);
+		PutPixel(context, cx + y, cy + x, color);
+		PutPixel(context, cx + y, cy - x, color);
+		PutPixel(context, cx - y, cy + x, color);
+		PutPixel(context, cx - y, cy - x, color);
+
 		if(x==y || x==rad) break;
-		if(d<0) d+=4*x+6;
+		if(d < 0) d += 4 * x + 6;
 		else
 		{
-			d+=4*(x-y)+10;
+			d += 4 * (x - y) + 10;
 			y--;
 		}
 		x++;
-		
 	}
 }
 
-void vline(int x,int y0,int y1, DWORD color, GraphicsContext *context)
+void vline(GraphicsContext *context, int x, int y0, int y1, DWORD color)
 {
 	int y;
 	DWORD val;
+	UCHAR *frameBuffer = context->frameBuffer();
+	int pitch = context->pitch();
 
-	val=y0*context->pitch;
-	for(y=y0;y<=y1;y++)
+	val = y0 * pitch;
+	for(y=y0; y<=y1; y++)
 	{
-		*(context->vidmem+val+4*x)=(UCHAR)color&0xFF;
-		*(context->vidmem+val+4*x+1)=(UCHAR)(color>>8)&0xFF;
-		*(context->vidmem+val+4*x+2)=(UCHAR)(color>>16)&0xFF;
-		val+=context->pitch;
+		*(frameBuffer + val + 4 * x) = (UCHAR)color&0xFF;
+		*(frameBuffer + val + 4 * x + 1) = (UCHAR)(color>>8)&0xFF;
+		*(frameBuffer + val + 4 * x + 2) = (UCHAR)(color>>16)&0xFF;
+		val += pitch;
 	}
 }
 
@@ -160,27 +165,27 @@ unsigned long dofade(unsigned long color,int fade)
 	unsigned char r,g,b;
 
 	r=color&0xFF;
-			g=(color>>8)&0xFF;
-			b=(color>>16)&0xFF;
-			if(r>fade) r=r-fade;
-			else r=0;
-			
-			if(g>fade) g=g-fade;
-			else g=0;
-			
-			if(b>fade) b=b-fade;
-			else b=0;
-
-			color=b;
-			color<<=8;
-			color|=g;
-			color<<=8;
-			color|=r;
-
-			return color;
+	g=(color>>8)&0xFF;
+	b=(color>>16)&0xFF;
+	if(r>fade) r=r-fade;
+	else r=0;
 	
+	if(g>fade) g=g-fade;
+	else g=0;
+	
+	if(b>fade) b=b-fade;
+	else b=0;
+
+	color=b;
+	color<<=8;
+	color|=g;
+	color<<=8;
+	color|=r;
+
+	return color;
 }
-static void texwall_ref(int x,int y0,int y1, Texture *texture, int tx,int ty0,int ty1,int miny,int maxy, int fade, GraphicsContext *context)
+
+static void texwall_ref(GraphicsContext *context, int x, int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy, int fade)
 {
 #ifdef NOVIS
 	return;
@@ -198,7 +203,7 @@ static void texwall_ref(int x,int y0,int y1, Texture *texture, int tx,int ty0,in
 		if(ty < 0) ty += texture->height * (abs(ty)/ texture->height + 1);
 		ty %= texture->height;
 
-		UCHAR *dst = context->vidmem + (y + y0) * context->pitch + x * 4;
+		UCHAR *dst = context->frameBuffer() + (y + y0) * context->pitch() + x * 4;
 		UCHAR *src = texture->data + ty * texture->width * 3 + tx * 3;
 
 		*dst = *src;
@@ -207,27 +212,26 @@ static void texwall_ref(int x,int y0,int y1, Texture *texture, int tx,int ty0,in
 	}
 }
 
-void texwall(int x,int y0,int y1, Texture *texture, int tx,int ty0,int ty1,int miny,int maxy, int fade, GraphicsContext *context)
+void texwall(GraphicsContext *context, int x,int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy, int fade)
 {
-	texwall_ref(x, y0, y1, texture, tx, ty0, ty1, miny, maxy, fade, context);
+	texwall_ref(context, x, y0, y1, texture, tx, ty0, ty1, miny, maxy, fade);
 }
 
-void hline(int x0,int x1,int y, int r, int g, int b, GraphicsContext *context)
+void hline(GraphicsContext *context, int x0, int x1, int y, DWORD color)
 {
 	int x;
 	DWORD val;
-	
-	
+		
 #ifdef NOVIS
 	return;
 #endif
 
-	val=y*context->pitch;
-	for(x=x0;x<=x1;x++)
+	val = y * context->pitch();
+	for(x=x0; x<=x1; x++)
 	{
-		*(context->vidmem+val+x*4)=b;
-		*(context->vidmem+val+x*4+1)=g;
-		*(context->vidmem+val+x*4+2)=r;
+		*(context->frameBuffer() + val + x * 4) = (UCHAR)color&0xFF;
+		*(context->frameBuffer() + val + x * 4 + 1) = (UCHAR)(color>>8)&0xFF;
+		*(context->frameBuffer() + val + x * 4 + 2) = (UCHAR)(color>>16)&0xFF;
 	}
 
   }
@@ -290,43 +294,43 @@ void getuvceil(int y, Sector *sector, Player *player, double data1, double data2
 	g_v = ipy * WORLDTOTEX;
 }
 
-static void texfloorceil_ref(int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1, GraphicsContext *context)
+static void texfloorceil_ref(GraphicsContext *context, int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
 {
 	int u,v;
 	int x;
 	UCHAR *src, *dst;
 	int width3;
 
-	if(x1<x0) return;
+	if(x1 < x0) return;
 	
-	width3 = texture->width*3;
-	dst = context->vidmem + y*context->pitch + x0*4;
+	width3 = texture->width * 3;
+	dst = context->frameBuffer() + y * context->pitch() + x0 * 4;
 
 	for(x=0; x <= x1-x0; x++)
 	{
-		u = u0 + x*(u1-u0)/(x1-x0);
-		v = v0 + x*(v1-v0)/(x1-x0);
+		u = u0 + x * (u1 - u0) / (x1 - x0);
+		v = v0 + x * (v1 - v0) / (x1 - x0);
 
-		if(u < 0) u += texture->width * (abs(u)/texture->width + 1);
-		if(v < 0) v += texture->height * (abs(v)/texture->height + 1);
+		if(u < 0) u += texture->width * (abs(u) / texture->width + 1);
+		if(v < 0) v += texture->height * (abs(v) / texture->height + 1);
 		u %= texture->width;
 		v %= texture->height;
-		src = texture->data+v*width3+u*3;
+		src = texture->data + v * width3 + u * 3;
 
-		*(dst)=*(src);
-		*(dst+1)=*(src+1);
-		*(dst+2)=*(src+2);
+		*(dst) = *(src);
+		*(dst + 1) = *(src + 1);
+		*(dst + 2) = *(src + 2);
 		
-		dst+=4;
+		dst += 4;
 	}
 }
 
-void texfloorceil(int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1, GraphicsContext *context)
+void texfloorceil(GraphicsContext *context, int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
 {
-	texfloorceil_ref(x0, x1, y, sector, texture, u0, v0, u1, v1, context);
+	texfloorceil_ref(context, x0, x1, y, sector, texture, u0, v0, u1, v1);
 }
 
-void DrawOverhead(Level *level, GraphicsContext *context)
+void DrawOverhead(GraphicsContext *context, MapInfo *mapInfo, Level *level)
 {
 	int i,j;
 	struct Sector *sector;
@@ -335,9 +339,9 @@ void DrawOverhead(Level *level, GraphicsContext *context)
 	int x0b, y0b, x1b, y1b;
 	int x0c, y0c, x1c, y1c;
 	
-	if(mapinfo.rotate == 0) line(320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000, context);
-	else					line(320, 240, 320, 220, 0xFF0000, context);
-	circle(320, 240, 7, 0xFF0000, context);
+	if(mapInfo->rotate == 0)	line(context, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
+	else						line(context, 320, 240, 320, 220, 0xFF0000);
+	circle(context, 320, 240, 7, 0xFF0000);
 
 	for(i=0; i<level->numSectors; i++)
 	{
@@ -345,12 +349,12 @@ void DrawOverhead(Level *level, GraphicsContext *context)
 		for(j=0; j<sector->numWalls; j++)
 		{
 			wall = &sector->walls[j];
-			x0b = (wall->start.x - level->player->x) * mapinfo.zoom + 320;
-			y0b = -(wall->start.y - level->player->y) * mapinfo.zoom + 240;
-			x1b = (wall->end.x - level->player->x) * mapinfo.zoom + 320;
-			y1b = -(wall->end.y - level->player->y) * mapinfo.zoom + 240;
+			x0b = (wall->start.x - level->player->x) * mapInfo->zoom + 320;
+			y0b = -(wall->start.y - level->player->y) * mapInfo->zoom + 240;
+			x1b = (wall->end.x - level->player->x) * mapInfo->zoom + 320;
+			y1b = -(wall->end.y - level->player->y) * mapInfo->zoom + 240;
 
-			if(mapinfo.rotate)
+			if(mapInfo->rotate)
 			{
 				x0c = x0b - 320;
 				y0c = y0b - 240;
@@ -370,13 +374,12 @@ void DrawOverhead(Level *level, GraphicsContext *context)
 				y1 = y1b;
 			}
 	
-			if(wall->flags == WALL_NORMAL)	line(x0, y0, x1, y1, 0x00FF00, context);
-			else							line(x0, y0, x1, y1, 0x008000, context);
+			if(wall->flags == WALL_NORMAL)	line(context, x0, y0, x1, y1, 0x00FF00);
+			else							line(context, x0, y0, x1, y1, 0x008000);
 
-			vertex(x0, y0, context);
+			vertex(context, x0, y0);
 		}
 	}
-	
 }
 
 struct FloorCeilingInfo {
@@ -395,7 +398,7 @@ void InitWalls()
 	for(i=0;i<VSIZE;i++) fc[i].x=-1;
 }
 
-void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, GraphicsContext *context)
+void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, int miny, int maxy)
 {
 	struct Wall tempwall;
 	double q0x, q0y, q1x, q1y;
@@ -476,7 +479,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(fc[k].x == -1) continue;
 
 				getuvfloor(k, fc[k].sector, player, px, py, 1);
-				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v, context);
+				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			fy = sector->fy;
@@ -492,7 +495,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(fc[k].x == -1) continue;
 
 				getuvfloor(k, sector, player, px, py, 1);
-				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v, context);
+				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			sector->fy = h1i;
@@ -509,12 +512,12 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(k > horizon)
 				{
 					getuvfloor(k, sector, player, px, py, 1);
-					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v, context);
+					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				else
 				{
 					getuvceil(k, sector, player, px, py, 1);
-					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v, context);
+					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				fc[k].x = -1;
 			}
@@ -532,7 +535,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(fc[k].x != -1)
 				{
 					getuvfloor(k, fc[k].sector, player, px, py, 1);
-					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v, context);
+					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 
 				fc[k].x = x;
@@ -578,7 +581,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(fc[k].x == -1) continue;
 
 				getuvceil(k, fc[k].sector, player, px, py, 1);
-				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v, context);
+				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			cy = sector->cy;
@@ -594,7 +597,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(fc[k].x == -1) continue;
 
 				getuvceil(k, sector, player, px, py, 1);
-				texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v, context);
+				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			sector->cy = h2i;
@@ -611,12 +614,12 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(k < horizon)
 				{
 					getuvceil(k, sector, player, px, py, 1);
-					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v, context);
+					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				else
 				{
 					getuvfloor(k, sector, player, px, py, 1);
-					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v, context);
+					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				fc[k].x = -1;
 			}
@@ -634,7 +637,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				if(fc[k].x != -1)
 				{
 					getuvceil(k, fc[k].sector, player, px, py, 1);
-					texfloorceil(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v, context);
+					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 
 				fc[k].x = x;
@@ -689,7 +692,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 				tempwall.midmod -= midtex->width;
 			}
 			
-			texwall(x, h2i, h1i, midtex, midtx, h2t, h1t, miny, maxy, d*5, context);
+			texwall(context, x, h2i, h1i, midtex, midtx, h2t, h1t, miny, maxy, d*5);
 			keepgoing = 0;
 		}
 		
@@ -717,7 +720,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 						toptx -= toptex->width; 
 						tempwall.topmod -= toptex->width;
 					}
-					texwall(x, h2i, h2bi, toptex, toptx, h2t, h2bt, miny, maxy, d*5, context);
+					texwall(context, x, h2i, h2bi, toptex, toptx, h2t, h2bt, miny, maxy, d*5);
 				}
 			}
 			else 
@@ -744,7 +747,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 						tempwall.bottmod -= botttex->width;
 					}
 					
-					texwall(x, h1bi, h1i, botttex, botttx, h1bt, h1t, miny, maxy, d*5, context);
+					texwall(context, x, h1bi, h1i, botttex, botttx, h1bt, h1t, miny, maxy, d*5);
 				}	
 			}
 			else 
@@ -764,7 +767,7 @@ void DrawWallSlice(int x, Player *player, int ignore, int miny, int maxy, Graphi
 	}
 }
 
-void DrawWalls(Level *level, GraphicsContext *context)
+void DrawWalls(GraphicsContext *context, Level *level)
 {
 	int x;
 	double xinc, yinc;
@@ -795,7 +798,7 @@ void DrawWalls(Level *level, GraphicsContext *context)
 			ds = hw * py; 
 		}
 
-		DrawWallSlice(x, level->player, -1, 0, VSIZE - 1, context);
+		DrawWallSlice(context, x, level->player, -1, 0, VSIZE - 1);
 		
 		p1x += xinc;
 		p1y += yinc;		
@@ -808,7 +811,7 @@ void DrawWalls(Level *level, GraphicsContext *context)
 		if(fc[k].x == -1) continue;
 
 		getuvfloor(k, fc[k].sector, level->player, px, py, 1);
-		texfloorceil(fc[k].x, x, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v, context);
+		texfloorceil(context, fc[k].x, x, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 		fc[k].x = -1;
 	}
 
@@ -818,7 +821,7 @@ void DrawWalls(Level *level, GraphicsContext *context)
 		if(fc[k].x == -1) continue;
 
 		getuvceil(k, fc[k].sector, level->player, px, py, 1);
-		texfloorceil(fc[k].x, x, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v, context);
+		texfloorceil(context, fc[k].x, x, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 		fc[k].x = -1;
 	}
 
@@ -826,11 +829,9 @@ void DrawWalls(Level *level, GraphicsContext *context)
 	else globalflag = 0;
 }	
 
-void DrawScreen(Level *level, GraphicsContext *context)
+void DrawScreen(GraphicsContext *context, Level *level)
 {
 	sinp = sin(level->player->angle);
 	cosp = cos(level->player->angle);
-	DrawWalls(level, context);
-	if(mapinfo.show) DrawOverhead(level, context);
-
+	DrawWalls(context, level);
 }

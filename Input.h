@@ -5,6 +5,7 @@
 #include <math.h>
 
 struct Player;
-void ProcessInput(Player *player);
+struct MapInfo;
+void ProcessInput(Player *player, MapInfo *mapInfo);
 
 #endif

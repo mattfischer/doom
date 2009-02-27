@@ -5,8 +5,6 @@
 #include "World.h"
 #include "Texture.h"
 
-struct MapInfo mapinfo;
-
 char *GetFileLine(char *input, int *start, int size)
 {
 	int i;
@@ -305,10 +303,6 @@ Level *LoadLevel()
 	level->player->fromfloor = 6;
 	level->player->sector = &level->sectors[0];
 	level->player->angle = 1;
-
-	mapinfo.rotate = 0;
-	mapinfo.zoom = 10;
-	mapinfo.show = 0;
 
 	return level;
 }

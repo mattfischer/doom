@@ -31,6 +31,4 @@ struct MapInfo {
 	double zoom;
 };
 
-extern struct MapInfo mapinfo;
-
 #endif

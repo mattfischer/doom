@@ -6,27 +6,21 @@
 #include "DDraw.h"
 #include "Game.h"
 
-extern Level *level;
 GraphicsContext *context;
 
 HWND hMainWindow;
 int rungame;
 int started;
-extern HANDLE DebugFile;
-extern LONG timer;
-extern int frames;
-extern bool pointselected;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(iMsg)
 	{
 		case WM_MOUSEMOVE:
-			if(pointselected && wParam&MK_LBUTTON)
-				MovePoints(level->player, LOWORD(lParam), HIWORD(lParam));
+			Game_MouseMove(LOWORD(lParam), HIWORD(lParam), wParam & MK_LBUTTON);
 			return 0;
 		case WM_LBUTTONDOWN:
-			SelectPoint(level, LOWORD(lParam),HIWORD(lParam));
+			Game_MouseButtonDown(LOWORD(lParam), HIWORD(lParam));
 			return 0;
 		case WM_DESTROY:
 
@@ -38,14 +32,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			if(wParam==TRUE)
 			{
 				ShowWindow(hMainWindow,SW_RESTORE);
-				RestoreStuff(context);
+				context->setActive(true);
 				rungame=1;
 			}
 			if(wParam==FALSE)
 			{
 				ShowWindow(hMainWindow,SW_MINIMIZE);
 				rungame=0;
-				DisplayMode(context, 0);
+				context->setActive(false);
 			}
 			return 0;
 
@@ -63,12 +57,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 	HINSTANCE hInstance;
 	
 	DebugInit();
-		
 	
 	hInstance=hInst;
 	started=0;
-
-
 
 	WndClass.cbSize=sizeof(WNDCLASSEX);
 
@@ -107,32 +98,32 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 
 	ShowCursor(TRUE);
 	rungame=1;
-	context = SetupDirectDraw(hMainWindow);
+	context = new GraphicsContext(hMainWindow);
 
 	if(Game_Init()) rungame=0;
 	
 	started=1;
 	while(1)
+	{
+		if(PeekMessage(&Msg,NULL,0,0,PM_REMOVE))
 		{
-			
-			if(PeekMessage(&Msg,NULL,0,0,PM_REMOVE))
-				{
-					TranslateMessage(&Msg);
-					DispatchMessage(&Msg);
-				}
-			if(Msg.message==WM_QUIT) break;
-			if(rungame) Game_Main(context);
-	
+			TranslateMessage(&Msg);
+			DispatchMessage(&Msg);
+		}
+		if(Msg.message==WM_QUIT) break;
+
+		if(rungame) Game_Main(context);
 	}
 
-
 	Game_Shutdown(context);
+
+	delete context;
+
+	DebugShutdown();
+
 	ShowCursor(TRUE);
 
 	return (Msg.wParam);
-
-
-
 }
 
 

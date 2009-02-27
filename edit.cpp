@@ -10,7 +10,7 @@ Point *point4=NULL;
 Point screenpoint;
 bool pointselected;
 
-void SelectPoint(Level *level, int x, int y)
+void SelectPoint(Level *level, MapInfo *mapInfo, int x, int y)
 {
 	int i, j;
 	int x0, y0;
@@ -27,8 +27,8 @@ void SelectPoint(Level *level, int x, int y)
 
 		for(j=0; j<sector->numWalls; j++)
 		{
-			x0 = (sector->walls[j].start.x - level->player->x) * mapinfo.zoom + 320;
-			y0 = -(sector->walls[j].start.y - level->player->y) * mapinfo.zoom + 240;
+			x0 = (sector->walls[j].start.x - level->player->x) * mapInfo->zoom + 320;
+			y0 = -(sector->walls[j].start.y - level->player->y) * mapInfo->zoom + 240;
 			if(abs(x0 - x)<3 && abs(y0 - y)<3)
 			{
 				point1 = &(sector->walls[j].start);
@@ -48,12 +48,14 @@ void SelectPoint(Level *level, int x, int y)
 	}
 }
 
-void MovePoints(Player *player, int x, int y)
+void MovePoints(Player *player, MapInfo *mapInfo, int x, int y)
 {
 	float x1, y1;
 
-	x1=((float)(x - 320)) / mapinfo.zoom + player->x;
-	y1=((float)(240 - y)) / mapinfo.zoom + player->y;
+	if(!pointselected) return;
+
+	x1=((float)(x - 320)) / mapInfo->zoom + player->x;
+	y1=((float)(240 - y)) / mapInfo->zoom + player->y;
 
 	if(point1 != NULL) 
 	{

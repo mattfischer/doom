@@ -40,38 +40,27 @@ void HandleBadResult(int ddrval,int level)
 	}
 }
 
-GraphicsContext *SetupDirectDraw(HWND hWnd)
+GraphicsContext::GraphicsContext(HWND hWnd)
 {
-	GraphicsContext *context = new GraphicsContext;
 	HRESULT ddrval;
 	DDSURFACEDESC ddSD;
 	DDSCAPS ddsCaps;
 
-	ddrval = DirectDrawCreate(NULL, &context->lpDD, NULL);
+	ddrval = DirectDrawCreate(NULL, &mDirectDraw, NULL);
 
 	if(ddrval != DD_OK)
 	{
 		HandleBadResult(ddrval, 1);
-		delete context;
-		return NULL;
 	}
 
-	ddrval = context->lpDD->SetCooperativeLevel(hWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_NOWINDOWCHANGES);
+	ddrval = mDirectDraw->SetCooperativeLevel(hWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_NOWINDOWCHANGES);
 
 	if(ddrval != DD_OK)
 	{
 		HandleBadResult(ddrval, 2);
-		delete context;
-		return NULL;
 	}
-	ddrval = context->lpDD->SetDisplayMode(HSIZE, VSIZE, 32);
 
-	if(ddrval != DD_OK)
-	{
-		HandleBadResult(ddrval, 3);
-		delete context;
-		return NULL;
-	}
+	mDirectDraw->SetDisplayMode(HSIZE, VSIZE, 32);
 
 	ZeroMemory((LPVOID)&ddSD, (DWORD)sizeof(ddSD));
 	ddSD.dwSize = sizeof(ddSD);
@@ -79,45 +68,41 @@ GraphicsContext *SetupDirectDraw(HWND hWnd)
 	ddSD.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
 	ddSD.dwBackBufferCount = 2;
 
-
-	ddrval = context->lpDD->CreateSurface(&ddSD, &context->lpDDSPrimary, NULL);
+	ddrval = mDirectDraw->CreateSurface(&ddSD, &mPrimarySurface, NULL);
 
 	if(ddrval != DD_OK)
 	{
 		HandleBadResult(ddrval, 4);
-		delete context;
-		return NULL;
 	}
 	ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
 
-	ddrval = context->lpDDSPrimary->GetAttachedSurface(&ddsCaps, &context->lpDDSBack);
+	ddrval = mPrimarySurface->GetAttachedSurface(&ddsCaps, &mBackSurface);
 
 	if(ddrval != DD_OK)
 	{
 		HandleBadResult(ddrval, 5);
-		delete context;
-		return NULL;
 	}
 
 	ddsCaps.dwCaps = DDSCAPS_FLIP;
-	context->lpDDSBack->GetAttachedSurface(&ddsCaps, &context->lpDDSBack);
+	mBackSurface->GetAttachedSurface(&ddsCaps, &mBackSurface);
 
-	return context;
+	mActive = true;
 }
 
 
-void CleanupDirectDraw(GraphicsContext *context)
+GraphicsContext::~GraphicsContext()
 {
-	if(context->lpDD)
-	{
-		if(context->lpDDSPrimary)
-			{
-				context->lpDDSPrimary->Release();
-			}
-		context->lpDD->Release();
-	}
+	setActive(false);
 
-	delete context;
+	if(mDirectDraw)
+	{
+		if(mPrimarySurface)
+		{
+			mPrimarySurface->Release();
+		}
+
+		mDirectDraw->Release();
+	}
 }
 
 void ClearSurface(LPDIRECTDRAWSURFACE Surface)
@@ -128,53 +113,71 @@ void ClearSurface(LPDIRECTDRAWSURFACE Surface)
 	Fx.dwFillColor=0;
 
 	Surface->Blt(NULL,NULL,NULL,DDBLT_COLORFILL,&Fx);
-
 }
 
 
-void FlipSurfaces(GraphicsContext *context)
+void GraphicsContext::flip()
 {
 	int ddrval;
-	ddrval = context->lpDDSPrimary->Flip(NULL,0);
+	ddrval = mPrimarySurface->Flip(NULL,0);
 }
 
-void RestoreStuff(GraphicsContext *context)
+void GraphicsContext::setActive(bool active)
 {
-#ifdef NOVIS
-	return;
-#endif
+	if(active)
+	{
+		mDirectDraw->SetDisplayMode(HSIZE, VSIZE, 32);
+		mPrimarySurface->Restore();
+		mBackSurface->Restore();
+	}
+	else
+	{
+		mDirectDraw->RestoreDisplayMode();
+	}
 
- DisplayMode(context, 1);
- context->lpDDSPrimary->Restore();
- context->lpDDSBack->Restore();
+	mActive = active;
 }
 
-void DisplayMode(GraphicsContext *context, int mode)
+bool GraphicsContext::active()
 {
-#ifdef NOVIS
-	return;
-#endif
-	if(mode==0) context->lpDD->RestoreDisplayMode();
-	if(mode==1) context->lpDD->SetDisplayMode(HSIZE,VSIZE,32);
+	return mActive;
 }
 
-void LockBack(GraphicsContext *context)
+void GraphicsContext::setLocked(bool locked)
 {
-	DDSURFACEDESC ddsd;
-	DWORD ddrval;
-	ddsd.dwSize=sizeof(DDSURFACEDESC);
-	
-	ddrval = context->lpDDSBack->Lock(NULL,&ddsd,DDLOCK_WAIT,NULL);
-	if(ddrval != DD_OK) HandleBadResult(ddrval, 0);
+	if(locked)
+	{
+		DDSURFACEDESC ddsd;
+		DWORD ddrval;
+		ddsd.dwSize = sizeof(DDSURFACEDESC);
+		
+		ddrval = mBackSurface->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
+		if(ddrval != DD_OK) HandleBadResult(ddrval, 0);
 
-	context->vidmem = (UCHAR*)ddsd.lpSurface;
-	context->pitch = ddsd.lPitch;
+		mFrameBuffer = (UCHAR*)ddsd.lpSurface;
+		mPitch = ddsd.lPitch;
+	}
+	else 
+	{
+		mBackSurface->Unlock(NULL);
+		mFrameBuffer = NULL;
+		mPitch = 0;
+	}
+
+	mLocked = locked;
 }
 
-void UnlockBack(GraphicsContext *context)
+bool GraphicsContext::locked()
 {
-	context->lpDDSBack->Unlock(NULL);
-	context->vidmem=NULL;
-	context->pitch=0;
+	return mLocked;
 }
 
+UCHAR *GraphicsContext::frameBuffer()
+{
+	return mFrameBuffer;
+}
+
+int GraphicsContext::pitch()
+{
+	return mPitch;
+}

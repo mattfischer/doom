@@ -5,20 +5,31 @@
 #include <ddraw.h>
 #include <stdlib.h>
 
-struct GraphicsContext {
-	LPDIRECTDRAW lpDD;
-	LPDIRECTDRAWSURFACE lpDDSPrimary;
-	LPDIRECTDRAWSURFACE lpDDSBack;
-	UCHAR *vidmem;
-	int pitch;
+class GraphicsContext {
+public:
+	GraphicsContext(HWND hWnd);
+	~GraphicsContext();
+
+	void setLocked(bool locked);
+	bool locked();
+
+	UCHAR *frameBuffer();
+	int pitch();
+
+	void flip();
+
+	void setActive(bool active);
+	bool active();
+
+protected:
+	LPDIRECTDRAW mDirectDraw;
+	LPDIRECTDRAWSURFACE mPrimarySurface;
+	LPDIRECTDRAWSURFACE mBackSurface;
+	UCHAR *mFrameBuffer;
+	int mPitch;
+	bool mActive;
+	bool mLocked;
 };
 
-GraphicsContext *SetupDirectDraw(HWND);
-void CleanupDirectDraw(GraphicsContext *);
-void FlipSurfaces(GraphicsContext *);
-void DisplayMode(GraphicsContext *, int);
-void RestoreStuff(GraphicsContext *);
-void LockBack(GraphicsContext *);
-void UnlockBack(GraphicsContext *);
 
 #endif

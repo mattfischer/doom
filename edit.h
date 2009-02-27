@@ -3,7 +3,8 @@
 
 struct Level;
 struct Player;
-void SelectPoint(Level *,int,int);
-void MovePoints(Player *player, int x, int y);
+struct MapInfo;
+void SelectPoint(Level *, MapInfo *,int,int);
+void MovePoints(Player *player, MapInfo *, int x, int y);
 
 #endif

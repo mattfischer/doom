@@ -15,7 +15,7 @@ extern int showmap;
 
 #define PI 3.14159
 
-void ProcessInput(Player *player)
+void ProcessInput(Player *player, MapInfo *mapInfo)
 {
 	double stepsize = 25;
 	double anglesize = 2;
@@ -29,7 +29,7 @@ void ProcessInput(Player *player)
 	{
 		if(tabflag == 0)
 		{
-			if(mapinfo.show == 0) mapinfo.show = 1; else mapinfo.show = 0;
+			if(mapInfo->show == 0) mapInfo->show = 1; else mapInfo->show = 0;
 			tabflag = 1;
 		}
 	}
@@ -38,7 +38,7 @@ void ProcessInput(Player *player)
 	{
 		if(plusflag == 0)
 		{
-			mapinfo.zoom *= 1.5;
+			mapInfo->zoom *= 1.5;
 			plusflag = 1;
 		}
 	}
@@ -46,7 +46,7 @@ void ProcessInput(Player *player)
 	{
 		if(minusflag == 0)
 		{
-			mapinfo.zoom *= .66;
+			mapInfo->zoom *= .66;
 			minusflag = 1;
 		}
 	}

@@ -7,13 +7,13 @@
 #include "DDraw.h"
 #include "Draw.h"
 #include "Input.h"
+#include "Edit.h"
 
 int frames=0;
 int flip=1;
-Level *level;
 unsigned long frametimer;
-DWORD dummy;
 unsigned long timer;
+GameInfo gameInfo;
 
 //#define FunctionLog
 int Game_Init()
@@ -21,8 +21,12 @@ int Game_Init()
 	#ifdef FunctionLog
 	DebugString("LoadLevel()\n");
 	#endif
-	level = LoadLevel();
+	gameInfo.level = LoadLevel();
 		
+	gameInfo.mapInfo.rotate = 0;
+	gameInfo.mapInfo.zoom = 10;
+	gameInfo.mapInfo.show = 0;
+
 	#ifdef FunctionLog
 	DebugString("SetupDirectDraw()\n");
 	#endif
@@ -37,43 +41,52 @@ int Game_Init()
 
 void Game_Main(GraphicsContext *context)
 {
-	char buffer[100];
-#ifndef NOVIS
-	LockBack(context);
-#endif
+	context->setLocked(true);
+
 	#ifdef FunctionLog
 	DebugString("ProcessInput()\n");
 	#endif
-	ProcessInput(level->player);
+	ProcessInput(gameInfo.level->player, &gameInfo.mapInfo);
+
 	#ifdef FunctionLog
 	DebugString("DrawScreen()\n");
 	#endif
-	DrawScreen(level, context);
-#ifndef NOVIS
-	UnlockBack(context);
-#endif
+	DrawScreen(context, gameInfo.level);
+
+	if(gameInfo.mapInfo.show) DrawOverhead(context, &gameInfo.mapInfo, gameInfo.level);
+
+	context->setLocked(false);
+
 	#ifdef FunctionLog
 	DebugString("FlipSurfaces()\n");
 	#endif
-#ifndef NOVIS
-	FlipSurfaces(context);
-#endif
+
+	context->flip();
 	
 	frames++;
-		if(GetTickCount()>timer+(unsigned)1000)
-			{
-				timer=GetTickCount();
-				wsprintf(buffer,"%i fps\n",frames);
-				DebugString(buffer);
-				frames=0;
-				
-			}
-
+	if(GetTickCount()>timer+(unsigned)1000)
+	{
+		char buffer[100];
+		timer=GetTickCount();
+		wsprintf(buffer,"%i fps\n",frames);
+		DebugString(buffer);
+		frames=0;
+		
+	}
 }
 
 void Game_Shutdown(GraphicsContext *context)
 {
-	DisplayMode(context, 0);
-	CleanupDirectDraw(context);
-	DebugShutdown();
+	
+}
+
+void Game_MouseMove(int x, int y, bool buttonDown)
+{
+	if(buttonDown)
+		MovePoints(gameInfo.level->player, &gameInfo.mapInfo, x, y);
+}
+
+void Game_MouseButtonDown(int x, int y)
+{
+	SelectPoint(gameInfo.level, &gameInfo.mapInfo, x, y);
 }
