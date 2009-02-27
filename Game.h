@@ -7,7 +7,7 @@
 
 #include "World.h"
 
-class Level;
+struct Level;
 class Renderer;
 class GraphicsContext;
 class Editor;

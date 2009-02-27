@@ -372,6 +372,10 @@
 				RelativePath=".\Texture.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\TexturingEngine.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -411,6 +415,10 @@
 			</File>
 			<File
 				RelativePath=".\Texture.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TexturingEngine.h"
 				>
 			</File>
 			<File

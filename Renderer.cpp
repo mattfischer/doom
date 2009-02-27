@@ -5,6 +5,7 @@
 #include "Debug.h"
 #include "GraphicsContext.h"
 #include "Draw.h"
+#include "TexturingEngine.h"
 
 #include <math.h>
 
@@ -22,63 +23,6 @@ double g_u, g_v;
 
 int fy;
 int cy;
-
-unsigned long dofade(unsigned long color,int fade)
-{
-	unsigned char r,g,b;
-
-	r=color&0xFF;
-	g=(color>>8)&0xFF;
-	b=(color>>16)&0xFF;
-	if(r>fade) r=r-fade;
-	else r=0;
-	
-	if(g>fade) g=g-fade;
-	else g=0;
-	
-	if(b>fade) b=b-fade;
-	else b=0;
-
-	color=b;
-	color<<=8;
-	color|=g;
-	color<<=8;
-	color|=r;
-
-	return color;
-}
-
-static void texwall_ref(GraphicsContext *context, int x, int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy, int fade)
-{
-#ifdef NOVIS
-	return;
-#endif
-
-	if(tx < 0) tx += texture->width * (abs(tx) / texture->width + 1);
-	tx %= texture->width;
-
-	for(int y = 0; y <= y1 - y0; y++) 
-	{
-		if(y + y0 < miny) continue;
-		if(y + y0 > maxy) continue;
-
-		int ty = ty0 + y * (ty1 - ty0 - 1) / (y1 - y0);
-		if(ty < 0) ty += texture->height * (abs(ty)/ texture->height + 1);
-		ty %= texture->height;
-
-		UCHAR *dst = context->frameBuffer() + (y + y0) * context->pitch() + x * 4;
-		UCHAR *src = texture->data + ty * texture->width * 3 + tx * 3;
-
-		*dst = *src;
-		*(dst + 1) = *(src + 1);
-		*(dst + 2) = *(src + 2);
-	}
-}
-
-void Renderer::textureWall(int x,int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy, int fade)
-{
-	texwall_ref(mContext, x, y0, y1, texture, tx, ty0, ty1, miny, maxy, fade);
-}
 
 void Renderer::getFloorUV(int y, Sector *sector, Player *player, double data1, double data2, int datatype)
 {
@@ -138,41 +82,6 @@ void Renderer::getCeilingUV(int y, Sector *sector, Player *player, double data1,
 	g_v = ipy * WORLDTOTEX;
 }
 
-static void texfloorceil_ref(GraphicsContext *context, int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
-{
-	int u,v;
-	int x;
-	UCHAR *src, *dst;
-	int width3;
-
-	if(x1 < x0) return;
-	
-	width3 = texture->width * 3;
-	dst = context->frameBuffer() + y * context->pitch() + x0 * 4;
-
-	for(x=0; x <= x1-x0; x++)
-	{
-		u = u0 + x * (u1 - u0) / (x1 - x0);
-		v = v0 + x * (v1 - v0) / (x1 - x0);
-
-		if(u < 0) u += texture->width * (abs(u) / texture->width + 1);
-		if(v < 0) v += texture->height * (abs(v) / texture->height + 1);
-		u %= texture->width;
-		v %= texture->height;
-		src = texture->data + v * width3 + u * 3;
-
-		*(dst) = *(src);
-		*(dst + 1) = *(src + 1);
-		*(dst + 2) = *(src + 2);
-		
-		dst += 4;
-	}
-}
-
-void Renderer::textureFloorCeiling(int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
-{
-	texfloorceil_ref(mContext, x0, x1, y, sector, texture, u0, v0, u1, v1);
-}
 
 void Renderer::drawMap(Player *player, int rotate, double zoom, Point *selectedPoint)
 {
@@ -314,7 +223,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(mFloorCeilingInfo[k].x == -1) continue;
 
 				getFloorUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
-				textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+				mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				mFloorCeilingInfo[k].x = -1;
 			}
 			fy = sector->fy;
@@ -330,7 +239,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(mFloorCeilingInfo[k].x == -1) continue;
 
 				getFloorUV(k, sector, player, px, py, 1);
-				textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+				mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				mFloorCeilingInfo[k].x = -1;
 			}
 			sector->fy = h1i;
@@ -347,12 +256,12 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(k > mHorizon)
 				{
 					getFloorUV(k, sector, player, px, py, 1);
-					textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+					mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				}
 				else
 				{
 					getCeilingUV(k, sector, player, px, py, 1);
-					textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+					mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				}
 				mFloorCeilingInfo[k].x = -1;
 			}
@@ -370,7 +279,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(mFloorCeilingInfo[k].x != -1)
 				{
 					getFloorUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
-					textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+					mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				}
 
 				mFloorCeilingInfo[k].x = x;
@@ -416,7 +325,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(mFloorCeilingInfo[k].x == -1) continue;
 
 				getCeilingUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
-				textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+				mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				mFloorCeilingInfo[k].x = -1;
 			}
 			cy = sector->cy;
@@ -432,7 +341,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(mFloorCeilingInfo[k].x == -1) continue;
 
 				getCeilingUV(k, sector, player, px, py, 1);
-				textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+				mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				mFloorCeilingInfo[k].x = -1;
 			}
 			sector->cy = h2i;
@@ -449,12 +358,12 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(k < mHorizon)
 				{
 					getCeilingUV(k, sector, player, px, py, 1);
-					textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+					mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				}
 				else
 				{
 					getFloorUV(k, sector, player, px, py, 1);
-					textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+					mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				}
 				mFloorCeilingInfo[k].x = -1;
 			}
@@ -472,7 +381,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				if(mFloorCeilingInfo[k].x != -1)
 				{
 					getCeilingUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
-					textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+					mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x - 1, k, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 				}
 
 				mFloorCeilingInfo[k].x = x;
@@ -527,7 +436,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 				tempwall.midmod -= midtex->width;
 			}
 			
-			textureWall(x, h2i, h1i, midtex, midtx, h2t, h1t, miny, maxy, d*5);
+			mTexturingEngine->textureWall(x, h2i, h1i, midtex, midtx, h2t, h1t, miny, maxy);
 			keepgoing = 0;
 		}
 		
@@ -555,7 +464,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 						toptx -= toptex->width; 
 						tempwall.topmod -= toptex->width;
 					}
-					textureWall(x, h2i, h2bi, toptex, toptx, h2t, h2bt, miny, maxy, d*5);
+					mTexturingEngine->textureWall(x, h2i, h2bi, toptex, toptx, h2t, h2bt, miny, maxy);
 				}
 			}
 			else 
@@ -582,7 +491,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 						tempwall.bottmod -= botttex->width;
 					}
 					
-					textureWall(x, h1bi, h1i, botttex, botttx, h1bt, h1t, miny, maxy, d*5);
+					mTexturingEngine->textureWall(x, h1bi, h1i, botttex, botttx, h1bt, h1t, miny, maxy);
 				}	
 			}
 			else 
@@ -646,7 +555,7 @@ void Renderer::drawWalls(Player *player)
 		if(mFloorCeilingInfo[k].x == -1) continue;
 
 		getFloorUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
-		textureFloorCeiling(mFloorCeilingInfo[k].x, x, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+		mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x, k, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 		mFloorCeilingInfo[k].x = -1;
 	}
 
@@ -656,7 +565,7 @@ void Renderer::drawWalls(Player *player)
 		if(mFloorCeilingInfo[k].x == -1) continue;
 
 		getCeilingUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
-		textureFloorCeiling(mFloorCeilingInfo[k].x, x, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
+		mTexturingEngine->textureFloorCeiling(mFloorCeilingInfo[k].x, x, k, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 		mFloorCeilingInfo[k].x = -1;
 	}
 
@@ -677,6 +586,8 @@ Renderer::Renderer(GraphicsContext *context, Level *level)
 	mLevel = level;
 
 	mFloorCeilingInfo = new FloorCeilingInfo[mContext->height()];
+
+	mTexturingEngine = TexturingEngine::createTexturingEngine(mContext);
 
 	int i;
 	for(i=0; i<mContext->height(); i++) mFloorCeilingInfo[i].x=-1;
