@@ -9,23 +9,21 @@
 #include "Input.h"
 #include "Edit.h"
 
-int frames=0;
-int flip=1;
 unsigned long frametimer;
-unsigned long timer;
-GameInfo gameInfo;
 
 //#define FunctionLog
-int Game_Init()
+GameState::GameState(GraphicsContext *context)
 {
+	mContext = context;
+
 	#ifdef FunctionLog
 	DebugString("LoadLevel()\n");
 	#endif
-	gameInfo.level = LoadLevel();
+	mLevel = LoadLevel();
 		
-	gameInfo.mapInfo.rotate = 0;
-	gameInfo.mapInfo.zoom = 10;
-	gameInfo.mapInfo.show = 0;
+	mMapInfo.rotate = 0;
+	mMapInfo.zoom = 10;
+	mMapInfo.show = 0;
 
 	#ifdef FunctionLog
 	DebugString("SetupDirectDraw()\n");
@@ -33,60 +31,33 @@ int Game_Init()
 
 	InitWalls();
 
-	DebugString("Made it through Game_Init\n");
-	timer=GetTickCount();
-	frametimer=GetTickCount();
-	return 0;
+	frametimer = GetTickCount();
 }
 
-void Game_Main(GraphicsContext *context)
+GameState::~GameState()
 {
-	context->setLocked(true);
-
-	#ifdef FunctionLog
-	DebugString("ProcessInput()\n");
-	#endif
-	ProcessInput(gameInfo.level->player, &gameInfo.mapInfo);
-
-	#ifdef FunctionLog
-	DebugString("DrawScreen()\n");
-	#endif
-	DrawScreen(context, gameInfo.level);
-
-	if(gameInfo.mapInfo.show) DrawOverhead(context, &gameInfo.mapInfo, gameInfo.level);
-
-	context->setLocked(false);
-
-	#ifdef FunctionLog
-	DebugString("FlipSurfaces()\n");
-	#endif
-
-	context->flip();
-	
-	frames++;
-	if(GetTickCount()>timer+(unsigned)1000)
-	{
-		char buffer[100];
-		timer=GetTickCount();
-		wsprintf(buffer,"%i fps\n",frames);
-		DebugString(buffer);
-		frames=0;
-		
-	}
 }
 
-void Game_Shutdown(GraphicsContext *context)
+void GameState::runIteration()
 {
-	
-}
+	mContext->setLocked(true);
 
-void Game_MouseMove(int x, int y, bool buttonDown)
+	ProcessInput(mLevel->player, &mMapInfo);
+
+	DrawScreen(mContext, mLevel);
+	if(mMapInfo.show) DrawOverhead(mContext, &mMapInfo, mLevel);
+
+	mContext->setLocked(false);
+	mContext->flip();
+}	
+
+void GameState::mouseMoved(int x, int y, bool buttonDown)
 {
 	if(buttonDown)
-		MovePoints(gameInfo.level->player, &gameInfo.mapInfo, x, y);
+		MovePoints(mLevel->player, &mMapInfo, x, y);
 }
 
-void Game_MouseButtonDown(int x, int y)
+void GameState::mouseButtonDown(int x, int y)
 {
-	SelectPoint(gameInfo.level, &gameInfo.mapInfo, x, y);
+	SelectPoint(mLevel, &mMapInfo, x, y);
 }

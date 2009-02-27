@@ -10,15 +10,20 @@
 #include "World.h"
 #include "Level.h"
 
-struct GameInfo {
-	Level *level;
-	MapInfo mapInfo;
-};
+class GameState {
+public:
+	GameState(GraphicsContext *context);
+	~GameState();
 
-int Game_Init();
-void Game_Main(GraphicsContext *context);
-void Game_Shutdown(GraphicsContext *context);
-void Game_MouseMove(int x, int y, bool buttonDown);
-void Game_MouseButtonDown(int x, int y);
+	void runIteration();
+
+	void mouseMoved(int x, int y, bool buttonDown);
+	void mouseButtonDown(int x, int y);
+
+protected:
+	GraphicsContext *mContext;
+	Level *mLevel;
+	MapInfo mMapInfo;
+};
 
 #endif

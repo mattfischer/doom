@@ -7,6 +7,7 @@
 #include "Game.h"
 
 GraphicsContext *context;
+GameState *game;
 
 HWND hMainWindow;
 int rungame;
@@ -17,10 +18,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	switch(iMsg)
 	{
 		case WM_MOUSEMOVE:
-			Game_MouseMove(LOWORD(lParam), HIWORD(lParam), wParam & MK_LBUTTON);
+			game->mouseMoved(LOWORD(lParam), HIWORD(lParam), wParam & MK_LBUTTON);
 			return 0;
+
 		case WM_LBUTTONDOWN:
-			Game_MouseButtonDown(LOWORD(lParam), HIWORD(lParam));
+			game->mouseButtonDown(LOWORD(lParam), HIWORD(lParam));
 			return 0;
 		case WM_DESTROY:
 
@@ -28,17 +30,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 		case WM_ACTIVATEAPP:
-			if(started==0) return 0;
-			if(wParam==TRUE)
+			if(started == 0) return 0;
+
+			if(wParam == TRUE)
 			{
-				ShowWindow(hMainWindow,SW_RESTORE);
+				ShowWindow(hMainWindow, SW_RESTORE);
 				context->setActive(true);
-				rungame=1;
+				rungame = 1;
 			}
-			if(wParam==FALSE)
+			else
 			{
-				ShowWindow(hMainWindow,SW_MINIMIZE);
-				rungame=0;
+				ShowWindow(hMainWindow, SW_MINIMIZE);
+				rungame = 0;
 				context->setActive(false);
 			}
 			return 0;
@@ -46,7 +49,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	}
 
 	return DefWindowProc(hWnd,iMsg,wParam,lParam);
-
 }
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iCmdShow)
@@ -99,10 +101,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 	ShowCursor(TRUE);
 	rungame=1;
 	context = new GraphicsContext(hMainWindow);
+	game = new GameState(context);
 
-	if(Game_Init()) rungame=0;
-	
 	started=1;
+
 	while(1)
 	{
 		if(PeekMessage(&Msg,NULL,0,0,PM_REMOVE))
@@ -112,11 +114,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 		}
 		if(Msg.message==WM_QUIT) break;
 
-		if(rungame) Game_Main(context);
+		if(rungame) game->runIteration();
 	}
 
-	Game_Shutdown(context);
-
+	delete game;
 	delete context;
 
 	DebugShutdown();
