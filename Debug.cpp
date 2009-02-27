@@ -1,5 +1,4 @@
-#include "global.h"
-#include "debug.h"
+#include "Debug.h"
 
 HANDLE DebugFile;
 

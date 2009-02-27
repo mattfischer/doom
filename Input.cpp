@@ -1,9 +1,8 @@
-#include "input.h"
+#include "Input.h"
 
 #include "Game.h"
 #include "Physics.h"
 
-extern int flip;
 int tabflag=0;
 int plusflag=0;
 int minusflag=0;

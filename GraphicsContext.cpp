@@ -1,7 +1,5 @@
 #include "GraphicsContext.h"
 
-#include "global.h"
-
 #include "Debug.h"
 
 extern HANDLE DebugFile;

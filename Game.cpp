@@ -1,5 +1,5 @@
 #include <math.h>
-#include "game.h"
+#include "Game.h"
 
 #include "Level.h"
 #include "Debug.h"

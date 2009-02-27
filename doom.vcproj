@@ -237,7 +237,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="edit.cpp"
+				RelativePath=".\Edit.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -313,7 +313,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="level.cpp"
+				RelativePath=".\Level.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -337,7 +337,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="physics.cpp"
+				RelativePath=".\Physics.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -365,7 +365,7 @@
 				>
 			</File>
 			<File
-				RelativePath="root.cpp"
+				RelativePath=".\Root.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -402,7 +402,7 @@
 				>
 			</File>
 			<File
-				RelativePath="edit.h"
+				RelativePath=".\Edit.h"
 				>
 			</File>
 			<File
@@ -418,11 +418,11 @@
 				>
 			</File>
 			<File
-				RelativePath="level.h"
+				RelativePath=".\Level.h"
 				>
 			</File>
 			<File
-				RelativePath="physics.h"
+				RelativePath=".\Physics.h"
 				>
 			</File>
 			<File

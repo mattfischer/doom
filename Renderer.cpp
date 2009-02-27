@@ -1,11 +1,11 @@
-#include <math.h>
-
 #include "Renderer.h"
 #include "World.h"
 #include "Texture.h"
 #include "Level.h"
 #include "Debug.h"
 #include "GraphicsContext.h"
+
+#include <math.h>
 
 double sinp, cosp;	
 double ds0=1.5;

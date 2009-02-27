@@ -1,8 +1,9 @@
-#include "level.h"
-#include <math.h>
+#include "Level.h"
 
 #include "World.h"
 #include "Texture.h"
+
+#include <math.h>
 
 char *GetFileLine(char *input, int *start, int size)
 {

@@ -1,4 +1,5 @@
-#include "edit.h"
+#include "Edit.h"
+
 #include "Game.h"
 #include "World.h"
 #include "Level.h"
