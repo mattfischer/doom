@@ -1,11 +1,12 @@
-#ifndef DRAW_H
-#define DRAW_H
+#ifndef RENDERER_H
+#define RENDERER_H
 
 struct Level;
 class GraphicsContext;
 struct MapInfo;
 struct Player;
 struct Texture;
+struct Point;
 
 class Renderer
 {
@@ -14,7 +15,7 @@ public:
 	~Renderer();
 
 	void drawScreen(Player *player);
-	void drawMap(Player *player, int rotate, double zoom);
+	void drawMap(Player *player, int rotate, double zoom, Point *selectedPoint);
 
 	void setHorizon(int horizon);
 	int horizon();

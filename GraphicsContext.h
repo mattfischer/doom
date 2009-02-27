@@ -1,5 +1,5 @@
-#ifndef DDRAW_H
-#define DDRAW_H
+#ifndef GRAPHICSCONTEXT_H
+#define GRAPHICSCONTEXT_H
 
 #include <windows.h>
 #include <ddraw.h>

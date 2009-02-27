@@ -4,6 +4,7 @@
 #include "Level.h"
 #include "Debug.h"
 #include "GraphicsContext.h"
+#include "Draw.h"
 
 #include <math.h>
 
@@ -21,137 +22,6 @@ double g_u, g_v;
 
 int fy;
 int cy;
-
-extern Point screenpoint;
-extern bool pointselected;
-
-void PutPixel( GraphicsContext *context, int x, int y, DWORD color)
-{
-	if(x<0 || x>context->width()-1 || y<0 || y>context->height()-1) return;
-
-	UCHAR *frameBuffer = context->frameBuffer();
-	int pitch = context->pitch();
-
-	*(frameBuffer + y * pitch + x * 4) = color&0xFF;
-	*(frameBuffer + y * pitch + x * 4 + 1) = (color>>8)&0xFF;
-	*(frameBuffer + y * pitch + x * 4 + 2) = (color>>16)&0xFF;
-}
-
-void vertex(GraphicsContext *context, int x, int y)
-{
-	int i,j;
-	DWORD color;
-
-	if(pointselected && screenpoint.x==x && screenpoint.y==y) color=0xFFFFFF;
-	else									 color=0xFFFF00;
-	for(i=x-2; i<x+2; i++)
-		for(j=y-2; j<y+2; j++)
-			PutPixel(context, i, j, color);
-}
-void line(GraphicsContext *context, int x0, int y0, int x1, int y1, DWORD color)
-{
-	int xd,yd;
-	int error;
-	int x,y;
-	int xi1,xi2,yi1,yi2;
-	int x0c,y0c,x1c,y1c;
-	int e1,e2;
-	int i,i2;
-	
-	xd = abs(x1 - x0);
-	yd = abs(y1 - y0);
-	x = x0;
-	y = y0;
-	
-	if(x1 > x0) xi1 = 1; else xi1 = -1;
-	if(y1 > y0) yi1 = 1; else yi1 = -1;
-	
-	i = 0;
-	if(xd > yd) 
-	{ 
-		i2 = xd;
-		error = xd / 2;
-		e1 = yd;
-		e2 = xd;
-		xi2 = xi1; 
-		yi2 = 0;
-	} 
-	else
-	{
-		i2 = yd;
-		error = yd/2;
-		e1 = xd;
-		e2 = yd;
-		xi2 = 0;
-		yi2 = yi1;
-	}
-
-	while(i != i2)
-	{
-		PutPixel(context, x, y, color);
-		error += e1;
-		if(error > e2)
-		{
-			error -= e2;
-			x += xi1;
-			y += yi1;
-		}
-		else 
-		{
-			x += xi2;
-			y += yi2;
-		}
-		i++;
-	}
-}
-
-void circle(GraphicsContext *context, int cx, int cy, int rad, DWORD color)
-{
-	int d;
-	int x,y;
-
-	d = 3 - (2 * rad);
-	x = 0;
-	y = rad;
-
-	while(1)
-	{
-		PutPixel(context, cx + x, cy + y, color);
-		PutPixel(context, cx - x, cy + y, color);
-		PutPixel(context, cx + x, cy - y, color);
-		PutPixel(context, cx - x, cy - y, color);
-		PutPixel(context, cx + y, cy + x, color);
-		PutPixel(context, cx + y, cy - x, color);
-		PutPixel(context, cx - y, cy + x, color);
-		PutPixel(context, cx - y, cy - x, color);
-
-		if(x==y || x==rad) break;
-		if(d < 0) d += 4 * x + 6;
-		else
-		{
-			d += 4 * (x - y) + 10;
-			y--;
-		}
-		x++;
-	}
-}
-
-void vline(GraphicsContext *context, int x, int y0, int y1, DWORD color)
-{
-	int y;
-	DWORD val;
-	UCHAR *frameBuffer = context->frameBuffer();
-	int pitch = context->pitch();
-
-	val = y0 * pitch;
-	for(y=y0; y<=y1; y++)
-	{
-		*(frameBuffer + val + 4 * x) = (UCHAR)color&0xFF;
-		*(frameBuffer + val + 4 * x + 1) = (UCHAR)(color>>8)&0xFF;
-		*(frameBuffer + val + 4 * x + 2) = (UCHAR)(color>>16)&0xFF;
-		val += pitch;
-	}
-}
 
 unsigned long dofade(unsigned long color,int fade)
 {
@@ -209,25 +79,6 @@ void Renderer::textureWall(int x,int y0, int y1, Texture *texture, int tx, int t
 {
 	texwall_ref(mContext, x, y0, y1, texture, tx, ty0, ty1, miny, maxy, fade);
 }
-
-void hline(GraphicsContext *context, int x0, int x1, int y, DWORD color)
-{
-	int x;
-	DWORD val;
-		
-#ifdef NOVIS
-	return;
-#endif
-
-	val = y * context->pitch();
-	for(x=x0; x<=x1; x++)
-	{
-		*(context->frameBuffer() + val + x * 4) = (UCHAR)color&0xFF;
-		*(context->frameBuffer() + val + x * 4 + 1) = (UCHAR)(color>>8)&0xFF;
-		*(context->frameBuffer() + val + x * 4 + 2) = (UCHAR)(color>>16)&0xFF;
-	}
-
-  }
 
 void Renderer::getFloorUV(int y, Sector *sector, Player *player, double data1, double data2, int datatype)
 {
@@ -323,7 +174,7 @@ void Renderer::textureFloorCeiling(int x0, int x1, int y, struct Sector *sector,
 	texfloorceil_ref(mContext, x0, x1, y, sector, texture, u0, v0, u1, v1);
 }
 
-void Renderer::drawMap(Player *player, int rotate, double zoom)
+void Renderer::drawMap(Player *player, int rotate, double zoom, Point *selectedPoint)
 {
 	int i,j;
 	struct Sector *sector;
@@ -332,9 +183,9 @@ void Renderer::drawMap(Player *player, int rotate, double zoom)
 	int x0b, y0b, x1b, y1b;
 	int x0c, y0c, x1c, y1c;
 	
-	if(rotate == 0)	line(mContext, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
-	else			line(mContext, 320, 240, 320, 220, 0xFF0000);
-	circle(mContext, 320, 240, 7, 0xFF0000);
+	if(rotate == 0)	DrawLine(mContext, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
+	else			DrawLine(mContext, 320, 240, 320, 220, 0xFF0000);
+	DrawCircle(mContext, 320, 240, 7, 0xFF0000);
 
 	for(i=0; i<mLevel->numSectors; i++)
 	{
@@ -367,10 +218,17 @@ void Renderer::drawMap(Player *player, int rotate, double zoom)
 				y1 = y1b;
 			}
 	
-			if(wall->flags == WALL_NORMAL)	line(mContext, x0, y0, x1, y1, 0x00FF00);
-			else							line(mContext, x0, y0, x1, y1, 0x008000);
+			if(wall->flags == WALL_NORMAL)	DrawLine(mContext, x0, y0, x1, y1, 0x00FF00);
+			else							DrawLine(mContext, x0, y0, x1, y1, 0x008000);
 
-			vertex(mContext, x0, y0);
+			int i,j;
+			DWORD color;
+
+			if(selectedPoint && selectedPoint->x==x0 && selectedPoint->y==y0)	color=0xFFFFFF;
+			else																color=0xFFFF00;
+			for(i=x0-2; i<x0+2; i++)
+				for(j=y0-2; j<y0+2; j++)
+					PutPixel(mContext, i, j, color);
 		}
 	}
 }

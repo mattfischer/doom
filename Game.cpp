@@ -5,10 +5,8 @@
 #include "Debug.h"
 #include "GraphicsContext.h"
 #include "Renderer.h"
-#include "Input.h"
 #include "Edit.h"
-
-unsigned long frametimer;
+#include "Physics.h"
 
 //#define FunctionLog
 GameState::GameState(GraphicsContext *context)
@@ -20,9 +18,9 @@ GameState::GameState(GraphicsContext *context)
 	#endif
 	mLevel = LoadLevel();
 		
-	mMapInfo.rotate = 0;
-	mMapInfo.zoom = 10;
-	mMapInfo.show = 0;
+	mMapRotate = 0;
+	mMapZoom = 10;
+	mShowMap = false;
 
 	mPlayer = mLevel->playerStart;
 
@@ -33,25 +31,25 @@ GameState::GameState(GraphicsContext *context)
 	mRenderer = new Renderer(mContext, mLevel);
 	mRenderer->setHorizon(mContext->height() / 2);
 
-	frametimer = GetTickCount();
+	mEditor = new Editor(mLevel);
+
+	mFrameTimer = GetTickCount();
 }
 
 GameState::~GameState()
 {
 	delete mRenderer;
+	delete mEditor;
 }
 
 void GameState::runIteration()
 {
 	mContext->setLocked(true);
 
-	int horizon = mRenderer->horizon();
-	ProcessInput(&mPlayer, &mMapInfo, &horizon);
-
-	mRenderer->setHorizon(horizon);
+	processInput();
 
 	mRenderer->drawScreen(&mPlayer);
-	if(mMapInfo.show) mRenderer->drawMap(&mPlayer, mMapInfo.rotate, mMapInfo.zoom);
+	if(mShowMap) mRenderer->drawMap(&mPlayer, mMapRotate, mMapZoom, mEditor->selectedPoint());
 
 	mContext->setLocked(false);
 	mContext->flip();
@@ -59,11 +57,99 @@ void GameState::runIteration()
 
 void GameState::mouseMoved(int x, int y, bool buttonDown)
 {
-	if(buttonDown)
-		MovePoints(&mPlayer, &mMapInfo, x, y);
+	if(buttonDown && mShowMap)
+		mEditor->movePoints(&mPlayer, x, y, mMapRotate, mMapZoom);
 }
 
 void GameState::mouseButtonDown(int x, int y)
 {
-	SelectPoint(&mPlayer, mLevel, &mMapInfo, x, y);
+	if(mShowMap) 
+		mEditor->selectPoint(&mPlayer, x, y, mMapRotate, mMapZoom);
 }
+
+int tabflag=0;
+int plusflag=0;
+int minusflag=0;
+int playbyplay=0;
+
+#define PI 3.14159
+#define KEY_DOWN(i) ((GetAsyncKeyState(i) & 0x8000) ? 1 : 0)
+#define KEY_UP(i) ((GetAsyncKeyState(i) & 0x8000) ? 0 : 1)
+
+void GameState::processInput()
+{
+	double stepsize = 25;
+	double anglesize = 2;
+	double newx;
+	double newy;
+	
+	int horizon = mRenderer->horizon();
+
+	int frameTime = GetTickCount() - mFrameTimer;
+	mFrameTimer = GetTickCount();
+
+	if(KEY_DOWN(VK_F1)) playbyplay = 1;
+	if(KEY_DOWN(VK_TAB))
+	{
+		if(tabflag == 0)
+		{
+			mShowMap = !mShowMap;
+			tabflag = 1;
+		}
+	}
+
+	if(KEY_DOWN(VK_ADD)) 
+	{
+		if(plusflag == 0)
+		{
+			mMapZoom *= 1.5;
+			plusflag = 1;
+		}
+	}
+	if(KEY_DOWN(VK_SUBTRACT)) 
+	{
+		if(minusflag == 0)
+		{
+			mMapZoom *= .66;
+			minusflag = 1;
+		}
+	}
+
+/*	if(KEY_DOWN(VK_F11)) mapinfo.rotate=1;
+	if(KEY_DOWN(VK_F12)) mapinfo.rotate=0;*/
+
+	if(KEY_UP(VK_ADD)) plusflag = 0;
+	if(KEY_UP(VK_SUBTRACT)) minusflag = 0;
+
+	if(KEY_UP(VK_TAB)) tabflag = 0;
+	if(KEY_DOWN(VK_ESCAPE)) PostQuitMessage(0);
+	if(KEY_DOWN(VK_PRIOR)) horizon += 20;
+	if(KEY_DOWN(VK_NEXT)) horizon -= 20;
+	if(KEY_DOWN('A')) mPlayer.height += .1;
+	if(KEY_DOWN('Z')) mPlayer.height -= .1;
+	if(KEY_DOWN(VK_RIGHT))
+	{
+		mPlayer.angle -= anglesize * frameTime / 1000;
+		if(mPlayer.angle < 0) mPlayer.angle += 2 * PI;
+	}
+	if(KEY_DOWN(VK_LEFT))
+	{
+		mPlayer.angle += anglesize * frameTime / 1000;
+		if(mPlayer.angle > 2 * PI) mPlayer.angle -= 2 * PI;
+	}
+	if(KEY_DOWN(VK_UP))
+	{
+		newx = mPlayer.x + cos(mPlayer.angle) * stepsize * frameTime / 1000;
+		newy = mPlayer.y + sin(mPlayer.angle) * stepsize * frameTime / 1000;
+		DoWallCollisions(&mPlayer, newx, newy);
+	}
+	if(KEY_DOWN(VK_DOWN))
+	{
+		newx = mPlayer.x - cos(mPlayer.angle) * stepsize * frameTime / 1000;
+		newy = mPlayer.y - sin(mPlayer.angle) * stepsize * frameTime / 1000;
+		DoWallCollisions(&mPlayer, newx, newy);
+	}
+
+	mRenderer->setHorizon(horizon);
+}
+

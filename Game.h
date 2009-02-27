@@ -10,6 +10,7 @@
 class Level;
 class Renderer;
 class GraphicsContext;
+class Editor;
 
 struct MapInfo {
 	int show;
@@ -28,11 +29,18 @@ public:
 	void mouseButtonDown(int x, int y);
 
 protected:
+	void processInput();
+
 	GraphicsContext *mContext;
 	Level *mLevel;
 	Player mPlayer;
-	MapInfo mMapInfo;
 	Renderer *mRenderer;
+	Editor *mEditor;
+
+	unsigned long mFrameTimer;
+	bool mShowMap;
+	int mMapRotate;
+	double mMapZoom;
 };
 
 #endif

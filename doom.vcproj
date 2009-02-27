@@ -237,6 +237,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\Draw.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Edit.cpp"
 				>
 				<FileConfiguration
@@ -287,30 +291,6 @@
 			<File
 				RelativePath=".\GraphicsContext.cpp"
 				>
-			</File>
-			<File
-				RelativePath="Input.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\Level.cpp"
@@ -402,6 +382,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Draw.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Edit.h"
 				>
 			</File>
@@ -414,10 +398,6 @@
 				>
 			</File>
 			<File
-				RelativePath="Input.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Level.h"
 				>
 			</File>
@@ -427,10 +407,6 @@
 			</File>
 			<File
 				RelativePath=".\Renderer.h"
-				>
-			</File>
-			<File
-				RelativePath="Root.h"
 				>
 			</File>
 			<File
