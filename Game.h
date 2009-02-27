@@ -9,7 +9,7 @@
 
 #include "World.h"
 #include "Level.h"
-#include "Draw.h"
+#include "Renderer.h"
 
 class GameState {
 public:

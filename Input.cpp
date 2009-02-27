@@ -10,12 +10,10 @@ int plusflag=0;
 int minusflag=0;
 int playbyplay=0;
 extern unsigned long frametimer;
-extern int horizon;
-extern int showmap;
 
 #define PI 3.14159
 
-void ProcessInput(Player *player, MapInfo *mapInfo)
+void ProcessInput(Player *player, MapInfo *mapInfo, int *horizon)
 {
 	double stepsize = 25;
 	double anglesize = 2;
@@ -59,8 +57,8 @@ void ProcessInput(Player *player, MapInfo *mapInfo)
 
 	if(KEY_UP(VK_TAB)) tabflag = 0;
 	if(KEY_DOWN(VK_ESCAPE)) PostQuitMessage(0);
-	if(KEY_DOWN(VK_PRIOR)) horizon += 20;
-	if(KEY_DOWN(VK_NEXT)) horizon -= 20;
+	if(KEY_DOWN(VK_PRIOR)) *horizon += 20;
+	if(KEY_DOWN(VK_NEXT)) *horizon -= 20;
 	if(KEY_DOWN('A')) player->height += .1;
 	if(KEY_DOWN('Z')) player->height -= .1;
 	if(KEY_DOWN(VK_RIGHT))

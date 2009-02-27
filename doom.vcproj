@@ -213,55 +213,7 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="Ddraw.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="Debug.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="draw.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -331,6 +283,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\GraphicsContext.cpp"
+				>
 			</File>
 			<File
 				RelativePath="Input.cpp"
@@ -405,6 +361,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\Renderer.cpp"
+				>
+			</File>
+			<File
 				RelativePath="root.cpp"
 				>
 				<FileConfiguration
@@ -438,15 +398,7 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
-				RelativePath="DDRAW.H"
-				>
-			</File>
-			<File
 				RelativePath="Debug.h"
-				>
-			</File>
-			<File
-				RelativePath="draw.h"
 				>
 			</File>
 			<File
@@ -459,6 +411,10 @@
 			</File>
 			<File
 				RelativePath="GLOBAL.H"
+				>
+			</File>
+			<File
+				RelativePath=".\GraphicsContext.h"
 				>
 			</File>
 			<File
@@ -475,6 +431,10 @@
 			</File>
 			<File
 				RelativePath="physics.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Renderer.h"
 				>
 			</File>
 			<File

@@ -8,9 +8,6 @@
 
 //#define NOVIS
 
-#define HSIZE 800
-#define VSIZE 600
-
 #define WORLDTOTEX 16
 
 #endif

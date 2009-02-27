@@ -1,5 +1,6 @@
+#include "GraphicsContext.h"
+
 #include "global.h"
-#include "ddraw.h"
 
 #include "Debug.h"
 
@@ -40,11 +41,14 @@ void HandleBadResult(int ddrval,int level)
 	}
 }
 
-GraphicsContext::GraphicsContext(HWND hWnd)
+GraphicsContext::GraphicsContext(HWND hWnd, int width, int height)
 {
 	HRESULT ddrval;
 	DDSURFACEDESC ddSD;
 	DDSCAPS ddsCaps;
+
+	mWidth = width;
+	mHeight = height;
 
 	ddrval = DirectDrawCreate(NULL, &mDirectDraw, NULL);
 
@@ -60,7 +64,7 @@ GraphicsContext::GraphicsContext(HWND hWnd)
 		HandleBadResult(ddrval, 2);
 	}
 
-	mDirectDraw->SetDisplayMode(HSIZE, VSIZE, 32);
+	mDirectDraw->SetDisplayMode(mWidth, mHeight, 32);
 
 	ZeroMemory((LPVOID)&ddSD, (DWORD)sizeof(ddSD));
 	ddSD.dwSize = sizeof(ddSD);
@@ -126,7 +130,7 @@ void GraphicsContext::setActive(bool active)
 {
 	if(active)
 	{
-		mDirectDraw->SetDisplayMode(HSIZE, VSIZE, 32);
+		mDirectDraw->SetDisplayMode(mWidth, mHeight, 32);
 		mPrimarySurface->Restore();
 		mBackSurface->Restore();
 	}
@@ -180,4 +184,14 @@ UCHAR *GraphicsContext::frameBuffer()
 int GraphicsContext::pitch()
 {
 	return mPitch;
+}
+
+int GraphicsContext::width()
+{
+	return mWidth;
+}
+
+int GraphicsContext::height()
+{
+	return mHeight;
 }

@@ -4,8 +4,8 @@
 
 #include "Level.h"
 #include "Debug.h"
-#include "DDraw.h"
-#include "Draw.h"
+#include "GraphicsContext.h"
+#include "Renderer.h"
 #include "Input.h"
 #include "Edit.h"
 
@@ -31,6 +31,8 @@ GameState::GameState(GraphicsContext *context)
 
 	mRenderer = new Renderer(mContext, mLevel);
 
+	mRenderer->setHorizon(mContext->height() / 2);
+
 	frametimer = GetTickCount();
 }
 
@@ -43,7 +45,10 @@ void GameState::runIteration()
 {
 	mContext->setLocked(true);
 
-	ProcessInput(mLevel->player, &mMapInfo);
+	int horizon = mRenderer->horizon();
+	ProcessInput(mLevel->player, &mMapInfo, &horizon);
+
+	mRenderer->setHorizon(horizon);
 
 	mRenderer->drawScreen();
 	if(mMapInfo.show) mRenderer->drawMap(&mMapInfo);

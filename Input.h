@@ -6,6 +6,6 @@
 
 struct Player;
 struct MapInfo;
-void ProcessInput(Player *player, MapInfo *mapInfo);
+void ProcessInput(Player *player, MapInfo *mapInfo, int *horizon);
 
 #endif

@@ -3,7 +3,7 @@
 #include "Level.h"
 #include "Edit.h"
 #include "Debug.h"
-#include "DDraw.h"
+#include "GraphicsContext.h"
 #include "Game.h"
 
 GraphicsContext *context;
@@ -12,6 +12,9 @@ GameState *game;
 HWND hMainWindow;
 int rungame;
 int started;
+
+#define HSIZE 800
+#define VSIZE 600
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -99,20 +102,20 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR szCmdLine, int iC
 	UpdateWindow(hMainWindow);
 
 	ShowCursor(TRUE);
-	rungame=1;
-	context = new GraphicsContext(hMainWindow);
+	rungame = 1;
+	context = new GraphicsContext(hMainWindow, HSIZE, VSIZE);
 	game = new GameState(context);
 
 	started=1;
 
 	while(1)
 	{
-		if(PeekMessage(&Msg,NULL,0,0,PM_REMOVE))
+		if(PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&Msg);
 			DispatchMessage(&Msg);
 		}
-		if(Msg.message==WM_QUIT) break;
+		if(Msg.message == WM_QUIT) break;
 
 		if(rungame) game->runIteration();
 	}

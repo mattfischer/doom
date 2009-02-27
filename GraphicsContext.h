@@ -7,7 +7,7 @@
 
 class GraphicsContext {
 public:
-	GraphicsContext(HWND hWnd);
+	GraphicsContext(HWND hWnd, int width, int height);
 	~GraphicsContext();
 
 	void setLocked(bool locked);
@@ -21,6 +21,9 @@ public:
 	void setActive(bool active);
 	bool active();
 
+	int width();
+	int height();
+
 protected:
 	LPDIRECTDRAW mDirectDraw;
 	LPDIRECTDRAWSURFACE mPrimarySurface;
@@ -29,6 +32,8 @@ protected:
 	int mPitch;
 	bool mActive;
 	bool mLocked;
+	int mWidth;
+	int mHeight;
 };
 
 
