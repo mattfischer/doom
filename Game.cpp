@@ -29,13 +29,14 @@ GameState::GameState(GraphicsContext *context)
 	DebugString("SetupDirectDraw()\n");
 	#endif
 
-	InitWalls();
+	mRenderer = new Renderer(mContext, mLevel);
 
 	frametimer = GetTickCount();
 }
 
 GameState::~GameState()
 {
+	delete mRenderer;
 }
 
 void GameState::runIteration()
@@ -44,8 +45,8 @@ void GameState::runIteration()
 
 	ProcessInput(mLevel->player, &mMapInfo);
 
-	DrawScreen(mContext, mLevel);
-	if(mMapInfo.show) DrawOverhead(mContext, &mMapInfo, mLevel);
+	mRenderer->drawScreen();
+	if(mMapInfo.show) mRenderer->drawMap(&mMapInfo);
 
 	mContext->setLocked(false);
 	mContext->flip();

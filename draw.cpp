@@ -212,9 +212,9 @@ static void texwall_ref(GraphicsContext *context, int x, int y0, int y1, Texture
 	}
 }
 
-void texwall(GraphicsContext *context, int x,int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy, int fade)
+void Renderer::textureWall(int x,int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy, int fade)
 {
-	texwall_ref(context, x, y0, y1, texture, tx, ty0, ty1, miny, maxy, fade);
+	texwall_ref(mContext, x, y0, y1, texture, tx, ty0, ty1, miny, maxy, fade);
 }
 
 void hline(GraphicsContext *context, int x0, int x1, int y, DWORD color)
@@ -325,12 +325,12 @@ static void texfloorceil_ref(GraphicsContext *context, int x0, int x1, int y, st
 	}
 }
 
-void texfloorceil(GraphicsContext *context, int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
+void Renderer::textureFloorCeiling(int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1)
 {
-	texfloorceil_ref(context, x0, x1, y, sector, texture, u0, v0, u1, v1);
+	texfloorceil_ref(mContext, x0, x1, y, sector, texture, u0, v0, u1, v1);
 }
 
-void DrawOverhead(GraphicsContext *context, MapInfo *mapInfo, Level *level)
+void Renderer::drawMap(MapInfo *mapInfo)
 {
 	int i,j;
 	struct Sector *sector;
@@ -339,20 +339,20 @@ void DrawOverhead(GraphicsContext *context, MapInfo *mapInfo, Level *level)
 	int x0b, y0b, x1b, y1b;
 	int x0c, y0c, x1c, y1c;
 	
-	if(mapInfo->rotate == 0)	line(context, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
-	else						line(context, 320, 240, 320, 220, 0xFF0000);
-	circle(context, 320, 240, 7, 0xFF0000);
+	if(mapInfo->rotate == 0)	line(mContext, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
+	else						line(mContext, 320, 240, 320, 220, 0xFF0000);
+	circle(mContext, 320, 240, 7, 0xFF0000);
 
-	for(i=0; i<level->numSectors; i++)
+	for(i=0; i<mLevel->numSectors; i++)
 	{
-		sector = &level->sectors[i];
+		sector = &mLevel->sectors[i];
 		for(j=0; j<sector->numWalls; j++)
 		{
 			wall = &sector->walls[j];
-			x0b = (wall->start.x - level->player->x) * mapInfo->zoom + 320;
-			y0b = -(wall->start.y - level->player->y) * mapInfo->zoom + 240;
-			x1b = (wall->end.x - level->player->x) * mapInfo->zoom + 320;
-			y1b = -(wall->end.y - level->player->y) * mapInfo->zoom + 240;
+			x0b = (wall->start.x - mLevel->player->x) * mapInfo->zoom + 320;
+			y0b = -(wall->start.y - mLevel->player->y) * mapInfo->zoom + 240;
+			x1b = (wall->end.x - mLevel->player->x) * mapInfo->zoom + 320;
+			y1b = -(wall->end.y - mLevel->player->y) * mapInfo->zoom + 240;
 
 			if(mapInfo->rotate)
 			{
@@ -374,10 +374,10 @@ void DrawOverhead(GraphicsContext *context, MapInfo *mapInfo, Level *level)
 				y1 = y1b;
 			}
 	
-			if(wall->flags == WALL_NORMAL)	line(context, x0, y0, x1, y1, 0x00FF00);
-			else							line(context, x0, y0, x1, y1, 0x008000);
+			if(wall->flags == WALL_NORMAL)	line(mContext, x0, y0, x1, y1, 0x00FF00);
+			else							line(mContext, x0, y0, x1, y1, 0x008000);
 
-			vertex(context, x0, y0);
+			vertex(mContext, x0, y0);
 		}
 	}
 }
@@ -391,14 +391,7 @@ struct FloorCeilingInfo {
 
 FloorCeilingInfo fc[VSIZE];
 
-void InitWalls()
-{
-	int i;
-
-	for(i=0;i<VSIZE;i++) fc[i].x=-1;
-}
-
-void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, int miny, int maxy)
+void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int maxy)
 {
 	struct Wall tempwall;
 	double q0x, q0y, q1x, q1y;
@@ -479,7 +472,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(fc[k].x == -1) continue;
 
 				getuvfloor(k, fc[k].sector, player, px, py, 1);
-				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+				textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			fy = sector->fy;
@@ -495,7 +488,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(fc[k].x == -1) continue;
 
 				getuvfloor(k, sector, player, px, py, 1);
-				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+				textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			sector->fy = h1i;
@@ -512,12 +505,12 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(k > horizon)
 				{
 					getuvfloor(k, sector, player, px, py, 1);
-					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+					textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				else
 				{
 					getuvceil(k, sector, player, px, py, 1);
-					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+					textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				fc[k].x = -1;
 			}
@@ -535,7 +528,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(fc[k].x != -1)
 				{
 					getuvfloor(k, fc[k].sector, player, px, py, 1);
-					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+					textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 
 				fc[k].x = x;
@@ -581,7 +574,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(fc[k].x == -1) continue;
 
 				getuvceil(k, fc[k].sector, player, px, py, 1);
-				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+				textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			cy = sector->cy;
@@ -597,7 +590,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(fc[k].x == -1) continue;
 
 				getuvceil(k, sector, player, px, py, 1);
-				texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+				textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				fc[k].x = -1;
 			}
 			sector->cy = h2i;
@@ -614,12 +607,12 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(k < horizon)
 				{
 					getuvceil(k, sector, player, px, py, 1);
-					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+					textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				else
 				{
 					getuvfloor(k, sector, player, px, py, 1);
-					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+					textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 				fc[k].x = -1;
 			}
@@ -637,7 +630,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				if(fc[k].x != -1)
 				{
 					getuvceil(k, fc[k].sector, player, px, py, 1);
-					texfloorceil(context, fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+					textureFloorCeiling(fc[k].x, x - 1, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 				}
 
 				fc[k].x = x;
@@ -692,7 +685,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 				tempwall.midmod -= midtex->width;
 			}
 			
-			texwall(context, x, h2i, h1i, midtex, midtx, h2t, h1t, miny, maxy, d*5);
+			textureWall(x, h2i, h1i, midtex, midtx, h2t, h1t, miny, maxy, d*5);
 			keepgoing = 0;
 		}
 		
@@ -720,7 +713,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 						toptx -= toptex->width; 
 						tempwall.topmod -= toptex->width;
 					}
-					texwall(context, x, h2i, h2bi, toptex, toptx, h2t, h2bt, miny, maxy, d*5);
+					textureWall(x, h2i, h2bi, toptex, toptx, h2t, h2bt, miny, maxy, d*5);
 				}
 			}
 			else 
@@ -747,7 +740,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 						tempwall.bottmod -= botttex->width;
 					}
 					
-					texwall(context, x, h1bi, h1i, botttex, botttx, h1bt, h1t, miny, maxy, d*5);
+					textureWall(x, h1bi, h1i, botttex, botttx, h1bt, h1t, miny, maxy, d*5);
 				}	
 			}
 			else 
@@ -767,7 +760,7 @@ void DrawWallSlice(GraphicsContext *context, int x, Player *player, int ignore, 
 	}
 }
 
-void DrawWalls(GraphicsContext *context, Level *level)
+void Renderer::drawWalls()
 {
 	int x;
 	double xinc, yinc;
@@ -775,8 +768,8 @@ void DrawWalls(GraphicsContext *context, Level *level)
 	cy = 0;
 	fy = VSIZE - 1;
 	
-	p0x = level->player->x;
-	p0y = level->player->y;
+	p0x = mLevel->player->x;
+	p0y = mLevel->player->y;
 	p1x = ds0 * cosp - sinp * w2 + p0x;
 	p1y = ds0 * sinp + cosp * w2 + p0y;
 	xinc = w640 * sinp;
@@ -798,7 +791,7 @@ void DrawWalls(GraphicsContext *context, Level *level)
 			ds = hw * py; 
 		}
 
-		DrawWallSlice(context, x, level->player, -1, 0, VSIZE - 1);
+		drawWallSlice(mLevel->player, x, -1, 0, VSIZE - 1);
 		
 		p1x += xinc;
 		p1y += yinc;		
@@ -810,8 +803,8 @@ void DrawWalls(GraphicsContext *context, Level *level)
 		if(k < 0) continue;
 		if(fc[k].x == -1) continue;
 
-		getuvfloor(k, fc[k].sector, level->player, px, py, 1);
-		texfloorceil(context, fc[k].x, x, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
+		getuvfloor(k, fc[k].sector, mLevel->player, px, py, 1);
+		textureFloorCeiling(fc[k].x, x, k, fc[k].sector, fc[k].sector->floortex, fc[k].u, fc[k].v, g_u, g_v);
 		fc[k].x = -1;
 	}
 
@@ -820,8 +813,8 @@ void DrawWalls(GraphicsContext *context, Level *level)
 		if(k > VSIZE - 1) continue;
 		if(fc[k].x == -1) continue;
 
-		getuvceil(k, fc[k].sector, level->player, px, py, 1);
-		texfloorceil(context, fc[k].x, x, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
+		getuvceil(k, fc[k].sector, mLevel->player, px, py, 1);
+		textureFloorCeiling(fc[k].x, x, k, fc[k].sector, fc[k].sector->ceiltex, fc[k].u, fc[k].v, g_u, g_v);
 		fc[k].x = -1;
 	}
 
@@ -829,9 +822,22 @@ void DrawWalls(GraphicsContext *context, Level *level)
 	else globalflag = 0;
 }	
 
-void DrawScreen(GraphicsContext *context, Level *level)
+void Renderer::drawScreen()
 {
-	sinp = sin(level->player->angle);
-	cosp = cos(level->player->angle);
-	DrawWalls(context, level);
+	sinp = sin(mLevel->player->angle);
+	cosp = cos(mLevel->player->angle);
+	drawWalls();
+}
+
+Renderer::Renderer(GraphicsContext *context, Level *level)
+{
+	mContext = context;
+	mLevel = level;
+
+	int i;
+	for(i=0;i<VSIZE;i++) fc[i].x=-1;
+}
+
+Renderer::~Renderer()
+{
 }

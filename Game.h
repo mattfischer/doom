@@ -9,6 +9,7 @@
 
 #include "World.h"
 #include "Level.h"
+#include "Draw.h"
 
 class GameState {
 public:
@@ -24,6 +25,7 @@ protected:
 	GraphicsContext *mContext;
 	Level *mLevel;
 	MapInfo mMapInfo;
+	Renderer *mRenderer;
 };
 
 #endif
