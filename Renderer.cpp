@@ -1,16 +1,11 @@
 #include <math.h>
-#include "global.h"
-#include "macros.h"
-#include "Renderer.h"
 
+#include "Renderer.h"
 #include "World.h"
 #include "Texture.h"
 #include "Level.h"
 #include "Debug.h"
 #include "GraphicsContext.h"
-
-int showmap=0;
-int rotatemap=0;
 
 double sinp, cosp;	
 double ds0=1.5;
@@ -328,7 +323,7 @@ void Renderer::textureFloorCeiling(int x0, int x1, int y, struct Sector *sector,
 	texfloorceil_ref(mContext, x0, x1, y, sector, texture, u0, v0, u1, v1);
 }
 
-void Renderer::drawMap(MapInfo *mapInfo)
+void Renderer::drawMap(Player *player, int rotate, double zoom)
 {
 	int i,j;
 	struct Sector *sector;
@@ -337,8 +332,8 @@ void Renderer::drawMap(MapInfo *mapInfo)
 	int x0b, y0b, x1b, y1b;
 	int x0c, y0c, x1c, y1c;
 	
-	if(mapInfo->rotate == 0)	line(mContext, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
-	else						line(mContext, 320, 240, 320, 220, 0xFF0000);
+	if(rotate == 0)	line(mContext, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
+	else			line(mContext, 320, 240, 320, 220, 0xFF0000);
 	circle(mContext, 320, 240, 7, 0xFF0000);
 
 	for(i=0; i<mLevel->numSectors; i++)
@@ -347,12 +342,12 @@ void Renderer::drawMap(MapInfo *mapInfo)
 		for(j=0; j<sector->numWalls; j++)
 		{
 			wall = &sector->walls[j];
-			x0b = (wall->start.x - mLevel->player->x) * mapInfo->zoom + 320;
-			y0b = -(wall->start.y - mLevel->player->y) * mapInfo->zoom + 240;
-			x1b = (wall->end.x - mLevel->player->x) * mapInfo->zoom + 320;
-			y1b = -(wall->end.y - mLevel->player->y) * mapInfo->zoom + 240;
+			x0b = (wall->start.x - player->x) * zoom + 320;
+			y0b = -(wall->start.y - player->y) * zoom + 240;
+			x1b = (wall->end.x - player->x) * zoom + 320;
+			y1b = -(wall->end.y - player->y) * zoom + 240;
 
-			if(mapInfo->rotate)
+			if(rotate)
 			{
 				x0c = x0b - 320;
 				y0c = y0b - 240;
@@ -749,7 +744,7 @@ void Renderer::drawWallSlice(Player *player, int x, int ignore, int miny, int ma
 	}
 }
 
-void Renderer::drawWalls()
+void Renderer::drawWalls(Player *player)
 {
 	int x;
 	double xinc, yinc;
@@ -757,8 +752,8 @@ void Renderer::drawWalls()
 	cy = 0;
 	fy = mContext->height() - 1;
 	
-	p0x = mLevel->player->x;
-	p0y = mLevel->player->y;
+	p0x = player->x;
+	p0y = player->y;
 	p1x = ds0 * cosp - sinp * w2 + p0x;
 	p1y = ds0 * sinp + cosp * w2 + p0y;
 	xinc = w640 * sinp;
@@ -780,7 +775,7 @@ void Renderer::drawWalls()
 			ds = hw * py; 
 		}
 
-		drawWallSlice(mLevel->player, x, -1, 0, mContext->height() - 1);
+		drawWallSlice(player, x, -1, 0, mContext->height() - 1);
 		
 		p1x += xinc;
 		p1y += yinc;		
@@ -792,7 +787,7 @@ void Renderer::drawWalls()
 		if(k < 0) continue;
 		if(mFloorCeilingInfo[k].x == -1) continue;
 
-		getFloorUV(k, mFloorCeilingInfo[k].sector, mLevel->player, px, py, 1);
+		getFloorUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
 		textureFloorCeiling(mFloorCeilingInfo[k].x, x, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->floortex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 		mFloorCeilingInfo[k].x = -1;
 	}
@@ -802,7 +797,7 @@ void Renderer::drawWalls()
 		if(k > mContext->height() - 1) continue;
 		if(mFloorCeilingInfo[k].x == -1) continue;
 
-		getCeilingUV(k, mFloorCeilingInfo[k].sector, mLevel->player, px, py, 1);
+		getCeilingUV(k, mFloorCeilingInfo[k].sector, player, px, py, 1);
 		textureFloorCeiling(mFloorCeilingInfo[k].x, x, k, mFloorCeilingInfo[k].sector, mFloorCeilingInfo[k].sector->ceiltex, mFloorCeilingInfo[k].u, mFloorCeilingInfo[k].v, g_u, g_v);
 		mFloorCeilingInfo[k].x = -1;
 	}
@@ -811,11 +806,11 @@ void Renderer::drawWalls()
 	else globalflag = 0;
 }	
 
-void Renderer::drawScreen()
+void Renderer::drawScreen(Player *player)
 {
-	sinp = sin(mLevel->player->angle);
-	cosp = cos(mLevel->player->angle);
-	drawWalls();
+	sinp = sin(player->angle);
+	cosp = cos(player->angle);
+	drawWalls(player);
 }
 
 Renderer::Renderer(GraphicsContext *context, Level *level)

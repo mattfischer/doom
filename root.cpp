@@ -1,4 +1,3 @@
-#include "global.h"
 #include "root.h"
 #include "Level.h"
 #include "Edit.h"

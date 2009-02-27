@@ -1,6 +1,10 @@
 #ifndef WORLD_H
 #define WORLD_H
 
+#include <windows.h>
+
+#define WORLDTOTEX 16
+
 struct Wall;
 struct Texture;
 
@@ -56,6 +60,15 @@ struct Wall {
 	DWORD topcol;
 	DWORD midcol;
 	DWORD bottcol;
+};
+
+struct Player {
+	double x;
+	double y;
+	double height;
+	double fromfloor;
+	double angle;
+	Sector *sector;
 };
 
 #endif

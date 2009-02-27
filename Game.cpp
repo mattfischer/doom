@@ -1,5 +1,4 @@
 #include <math.h>
-#include "global.h"
 #include "game.h"
 
 #include "Level.h"
@@ -25,12 +24,13 @@ GameState::GameState(GraphicsContext *context)
 	mMapInfo.zoom = 10;
 	mMapInfo.show = 0;
 
+	mPlayer = mLevel->playerStart;
+
 	#ifdef FunctionLog
 	DebugString("SetupDirectDraw()\n");
 	#endif
 
 	mRenderer = new Renderer(mContext, mLevel);
-
 	mRenderer->setHorizon(mContext->height() / 2);
 
 	frametimer = GetTickCount();
@@ -46,12 +46,12 @@ void GameState::runIteration()
 	mContext->setLocked(true);
 
 	int horizon = mRenderer->horizon();
-	ProcessInput(mLevel->player, &mMapInfo, &horizon);
+	ProcessInput(&mPlayer, &mMapInfo, &horizon);
 
 	mRenderer->setHorizon(horizon);
 
-	mRenderer->drawScreen();
-	if(mMapInfo.show) mRenderer->drawMap(&mMapInfo);
+	mRenderer->drawScreen(&mPlayer);
+	if(mMapInfo.show) mRenderer->drawMap(&mPlayer, mMapInfo.rotate, mMapInfo.zoom);
 
 	mContext->setLocked(false);
 	mContext->flip();
@@ -60,10 +60,10 @@ void GameState::runIteration()
 void GameState::mouseMoved(int x, int y, bool buttonDown)
 {
 	if(buttonDown)
-		MovePoints(mLevel->player, &mMapInfo, x, y);
+		MovePoints(&mPlayer, &mMapInfo, x, y);
 }
 
 void GameState::mouseButtonDown(int x, int y)
 {
-	SelectPoint(mLevel, &mMapInfo, x, y);
+	SelectPoint(&mPlayer, mLevel, &mMapInfo, x, y);
 }

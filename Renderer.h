@@ -13,14 +13,14 @@ public:
 	Renderer(GraphicsContext *context, Level *level);
 	~Renderer();
 
-	void drawScreen();
-	void drawMap(MapInfo *mapInfo);
+	void drawScreen(Player *player);
+	void drawMap(Player *player, int rotate, double zoom);
 
 	void setHorizon(int horizon);
 	int horizon();
 
 protected:
-	void drawWalls();
+	void drawWalls(Player *player);
 	void drawWallSlice(Player *player, int x, int ignore, int miny, int maxy);
 
 	void textureFloorCeiling(int x0, int x1, int y, struct Sector *sector, Texture *texture, double u0, double v0, double u1, double v1);

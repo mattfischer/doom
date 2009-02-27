@@ -5,11 +5,17 @@
 #include <stdlib.h>
 #include <ddraw.h>
 
-#include "ddraw.h"
-
 #include "World.h"
-#include "Level.h"
-#include "Renderer.h"
+
+class Level;
+class Renderer;
+class GraphicsContext;
+
+struct MapInfo {
+	int show;
+	int rotate;
+	double zoom;
+};
 
 class GameState {
 public:
@@ -24,6 +30,7 @@ public:
 protected:
 	GraphicsContext *mContext;
 	Level *mLevel;
+	Player mPlayer;
 	MapInfo mMapInfo;
 	Renderer *mRenderer;
 };

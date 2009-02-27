@@ -1,4 +1,3 @@
-#include "global.h"
 #include "level.h"
 #include <math.h>
 
@@ -295,14 +294,12 @@ Level *LoadLevel()
 
 	DoWallStuff(level);
 
-	level->player = new Player;
-
-	level->player->x = -10;
-	level->player->y = -10;
-	level->player->height = 6;
-	level->player->fromfloor = 6;
-	level->player->sector = &level->sectors[0];
-	level->player->angle = 1;
+	level->playerStart.x = -10;
+	level->playerStart.y = -10;
+	level->playerStart.height = 6;
+	level->playerStart.fromfloor = 6;
+	level->playerStart.sector = &level->sectors[0];
+	level->playerStart.angle = 1;
 
 	return level;
 }

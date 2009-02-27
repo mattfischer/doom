@@ -1,5 +1,5 @@
-#include "global.h"
 #include "edit.h"
+#include "Game.h"
 #include "World.h"
 #include "Level.h"
 
@@ -10,7 +10,7 @@ Point *point4=NULL;
 Point screenpoint;
 bool pointselected;
 
-void SelectPoint(Level *level, MapInfo *mapInfo, int x, int y)
+void SelectPoint(Player *player, Level *level, MapInfo *mapInfo, int x, int y)
 {
 	int i, j;
 	int x0, y0;
@@ -27,8 +27,8 @@ void SelectPoint(Level *level, MapInfo *mapInfo, int x, int y)
 
 		for(j=0; j<sector->numWalls; j++)
 		{
-			x0 = (sector->walls[j].start.x - level->player->x) * mapInfo->zoom + 320;
-			y0 = -(sector->walls[j].start.y - level->player->y) * mapInfo->zoom + 240;
+			x0 = (sector->walls[j].start.x - player->x) * mapInfo->zoom + 320;
+			y0 = -(sector->walls[j].start.y - player->y) * mapInfo->zoom + 240;
 			if(abs(x0 - x)<3 && abs(y0 - y)<3)
 			{
 				point1 = &(sector->walls[j].start);

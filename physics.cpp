@@ -1,4 +1,3 @@
-#include "global.h"
 #include "physics.h"
 #include "World.h"
 #include "Level.h"

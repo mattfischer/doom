@@ -1,7 +1,6 @@
-#include "global.h"
 #include "input.h"
 
-#include "Level.h"
+#include "Game.h"
 #include "Physics.h"
 
 extern int flip;
@@ -12,6 +11,8 @@ int playbyplay=0;
 extern unsigned long frametimer;
 
 #define PI 3.14159
+#define KEY_DOWN(i) ((GetAsyncKeyState(i) & 0x8000) ? 1 : 0)
+#define KEY_UP(i) ((GetAsyncKeyState(i) & 0x8000) ? 0 : 1)
 
 void ProcessInput(Player *player, MapInfo *mapInfo, int *horizon)
 {

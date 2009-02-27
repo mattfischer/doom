@@ -1,17 +1,7 @@
 #ifndef LEVEL_H
 #define LEVEL_H
 
-struct Texture;
-struct Sector;
-
-struct Player {
-	double x;
-	double y;
-	double height;
-	double fromfloor;
-	double angle;
-	Sector *sector;
-};
+#include "World.h"
 
 struct Level {
 	Texture *textures;
@@ -20,15 +10,9 @@ struct Level {
 	Sector *sectors;
 	int numSectors;
 
-	Player *player;
+	Player playerStart;
 };
 
 Level *LoadLevel();
-
-struct MapInfo {
-	int show;
-	int rotate;
-	double zoom;
-};
 
 #endif
