@@ -27,8 +27,8 @@ void TexturingEngineReference::textureFloorCeiling(int x0, int x1, int y, Textur
 
 	for(x=0; x <= x1-x0; x++)
 	{
-		u = u0 + x * (u1 - u0) / (x1 - x0);
-		v = v0 + x * (v1 - v0) / (x1 - x0);
+		u = (int)(u0 + x * (u1 - u0) / (x1 - x0));
+		v = (int)(v0 + x * (v1 - v0) / (x1 - x0));
 
 		if(u < 0) u += texture->width * (abs(u) / texture->width + 1);
 		if(v < 0) v += texture->height * (abs(v) / texture->height + 1);
@@ -112,7 +112,6 @@ void TexturingEngineFloat::textureFloorCeiling(int x0, int x1, int y, Texture *t
 {
 	int x;
 	DWORD *src, *dst;
-	int width3;
 
 	if(x1 < x0) return;
 	
@@ -143,6 +142,9 @@ void TexturingEngineFloat::textureFloorCeiling(int x0, int x1, int y, Texture *t
 		v += vinc;
 	}
 }
+
+
+
 
 class TexturingEngineFixed : public TexturingEngine
 {
@@ -184,8 +186,6 @@ void TexturingEngineFixed::textureWall(int x, int y0, int y1, Texture *texture, 
 		dst += pitch * (miny - y0);
 		starty = miny - y0;
 	}
-
-	
 
 	DWORD *data = texture->data;
 	DWORD *src = data + ty * texture->width + tx;
