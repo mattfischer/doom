@@ -153,7 +153,7 @@ Level *LoadLevel()
 		delete[] value;
 		
 		value = GetValue(line, &pos2, &error);
-		level->textures[i] = LoadBMP(value, 32, 32);
+		level->textures[i] = LoadBMP(value);
 		delete[] value;
 		
 		delete[] line;

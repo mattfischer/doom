@@ -156,8 +156,8 @@ void GraphicsContext::setLocked(bool locked)
 		ddrval = mBackSurface->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
 		if(ddrval != DD_OK) HandleBadResult(ddrval, 0);
 
-		mFrameBuffer = (UCHAR*)ddsd.lpSurface;
-		mPitch = ddsd.lPitch;
+		mFrameBuffer = (DWORD*)ddsd.lpSurface;
+		mPitch = ddsd.lPitch / sizeof(DWORD);
 	}
 	else 
 	{
@@ -174,7 +174,7 @@ bool GraphicsContext::locked()
 	return mLocked;
 }
 
-UCHAR *GraphicsContext::frameBuffer()
+DWORD *GraphicsContext::frameBuffer()
 {
 	return mFrameBuffer;
 }

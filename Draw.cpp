@@ -6,28 +6,19 @@ void PutPixel(GraphicsContext *context, int x, int y, DWORD color)
 {
 	if(x<0 || x>context->width()-1 || y<0 || y>context->height()-1) return;
 
-	UCHAR *frameBuffer = context->frameBuffer();
-	int pitch = context->pitch();
-
-	*(frameBuffer + y * pitch + x * 4) = color&0xFF;
-	*(frameBuffer + y * pitch + x * 4 + 1) = (color>>8)&0xFF;
-	*(frameBuffer + y * pitch + x * 4 + 2) = (color>>16)&0xFF;
+	*(context->frameBuffer() + y * context->pitch() + x) = color;
 }
 
 void vline(GraphicsContext *context, int x, int y0, int y1, DWORD color)
 {
 	int y;
 	DWORD val;
-	UCHAR *frameBuffer = context->frameBuffer();
-	int pitch = context->pitch();
 
-	val = y0 * pitch;
+	val = y0 * context->pitch();
 	for(y=y0; y<=y1; y++)
 	{
-		*(frameBuffer + val + 4 * x) = (UCHAR)color&0xFF;
-		*(frameBuffer + val + 4 * x + 1) = (UCHAR)(color>>8)&0xFF;
-		*(frameBuffer + val + 4 * x + 2) = (UCHAR)(color>>16)&0xFF;
-		val += pitch;
+		*(context->frameBuffer() + val + x) = color;
+		val += context->pitch();
 	}
 }
 
@@ -43,9 +34,7 @@ static void hline(GraphicsContext *context, int x0, int x1, int y, DWORD color)
 	val = y * context->pitch();
 	for(x=x0; x<=x1; x++)
 	{
-		*(context->frameBuffer() + val + x * 4) = (UCHAR)color&0xFF;
-		*(context->frameBuffer() + val + x * 4 + 1) = (UCHAR)(color>>8)&0xFF;
-		*(context->frameBuffer() + val + x * 4 + 2) = (UCHAR)(color>>16)&0xFF;
+		*(context->frameBuffer() + val + x) = color;
 	}
 
 }

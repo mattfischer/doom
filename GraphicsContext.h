@@ -13,7 +13,7 @@ public:
 	void setLocked(bool locked);
 	bool locked();
 
-	UCHAR *frameBuffer();
+	DWORD *frameBuffer();
 	int pitch();
 
 	void flip();
@@ -28,7 +28,7 @@ protected:
 	LPDIRECTDRAW mDirectDraw;
 	LPDIRECTDRAWSURFACE mPrimarySurface;
 	LPDIRECTDRAWSURFACE mBackSurface;
-	UCHAR *mFrameBuffer;
+	DWORD *mFrameBuffer;
 	int mPitch;
 	bool mActive;
 	bool mLocked;

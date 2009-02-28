@@ -6,9 +6,9 @@
 struct Texture {
 	int width;
 	int height;
-	UCHAR *data;
+	DWORD *data;
 };
 
-Texture LoadBMP(char*, int, int);
+Texture LoadBMP(char *filename);
 
 #endif

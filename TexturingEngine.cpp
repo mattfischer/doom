@@ -3,6 +3,8 @@
 #include "Texture.h"
 #include "GraphicsContext.h"
 
+#define TEXTURINGENGINE TexturingEngineFixed
+
 TexturingEngine::TexturingEngine(GraphicsContext *context)
 {
 	mContext = context;
@@ -33,12 +35,10 @@ void TexturingEngineReference::textureFloorCeiling(int x0, int x1, int y, Textur
 		u %= texture->width;
 		v %= texture->height;
 
-		UCHAR *src = texture->data + v * texture->width * 3 + u * 3;
-		UCHAR *dst = mContext->frameBuffer() + y * mContext->pitch() + (x0 + x) * 4;
+		DWORD *src = texture->data + v * texture->width + u;
+		DWORD *dst = mContext->frameBuffer() + y * mContext->pitch() + x0 + x;
 
 		*(dst) = *(src);
-		*(dst + 1) = *(src + 1);
-		*(dst + 2) = *(src + 2);
 	}
 }
 
@@ -56,12 +56,10 @@ void TexturingEngineReference::textureWall(int x, int y0, int y1, Texture *textu
 		if(ty < 0) ty += texture->height * (abs(ty)/ texture->height + 1);
 		ty %= texture->height;
 
-		UCHAR *dst = mContext->frameBuffer() + (y + y0) * mContext->pitch() + x * 4;
-		UCHAR *src = texture->data + ty * texture->width * 3 + tx * 3;
+		DWORD *dst = mContext->frameBuffer() + (y + y0) * mContext->pitch() + x;
+		DWORD *src = texture->data + ty * texture->width + tx;
 
 		*dst = *src;
-		*(dst + 1) = *(src + 1);
-		*(dst + 2) = *(src + 2);
 	}
 }
 
@@ -84,7 +82,7 @@ void TexturingEngineFloat::textureWall(int x, int y0, int y1, Texture *texture, 
 	double ty = ty0;
 	if(ty < 0) ty += texture->height * (abs(ty)/ texture->height + 1);
 
-	UCHAR *dst = mContext->frameBuffer() + y0 * mContext->pitch() + x * 4;
+	DWORD *dst = mContext->frameBuffer() + y0 * mContext->pitch() + x;
 
 	int starty = 0;
 
@@ -100,11 +98,9 @@ void TexturingEngineFloat::textureWall(int x, int y0, int y1, Texture *texture, 
 	{
 		if(y + y0 > maxy) break;
 
-		UCHAR *src = texture->data + (int)ty * texture->width * 3 + tx * 3;
+		DWORD *src = texture->data + (int)ty * texture->width + tx;
 
 		*dst = *src;
-		*(dst + 1) = *(src + 1);
-		*(dst + 2) = *(src + 2);
 	
 		ty += tyinc;
 		if(ty > texture->height) ty -= texture->height * ((int)ty / texture->height);
@@ -115,13 +111,12 @@ void TexturingEngineFloat::textureWall(int x, int y0, int y1, Texture *texture, 
 void TexturingEngineFloat::textureFloorCeiling(int x0, int x1, int y, Texture *texture, double u0, double v0, double u1, double v1)
 {
 	int x;
-	UCHAR *src, *dst;
+	DWORD *src, *dst;
 	int width3;
 
 	if(x1 < x0) return;
 	
-	width3 = texture->width * 3;
-	dst = mContext->frameBuffer() + y * mContext->pitch() + x0 * 4;
+	dst = mContext->frameBuffer() + y * mContext->pitch() + x0;
 
 	double u = u0;
 	double v = v0;
@@ -138,20 +133,130 @@ void TexturingEngineFloat::textureFloorCeiling(int x0, int x1, int y, Texture *t
 
 		int ui = (int)u;
 		int vi = (int)v;
-		src = texture->data + vi * width3 + ui * 3;
+		src = texture->data + vi * texture->width + ui;
 
 		*(dst) = *(src);
-		*(dst + 1) = *(src + 1);
-		*(dst + 2) = *(src + 2);
 		
-		dst += 4;
+		dst++;
 
 		u += uinc;
 		v += vinc;
 	}
 }
 
+class TexturingEngineFixed : public TexturingEngine
+{
+public:
+	TexturingEngineFixed(GraphicsContext *context) : TexturingEngine(context) {}
+	virtual void textureFloorCeiling(int x0, int x1, int y, Texture *texture, double u0, double v0, double u1, double v1);
+	virtual void textureWall(int x,int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy);
+};
+
+void TexturingEngineFixed::textureWall(int x, int y0, int y1, Texture *texture, int tx, int ty0, int ty1, int miny, int maxy)
+{
+	int width = texture->width;
+	int height = texture->height;
+
+	DWORD *dst = mContext->frameBuffer() + y0 * mContext->pitch() + x;
+	int pitch = mContext->pitch();
+
+	int tyinc = ty1 - ty0 - 1;
+	int ty = ty0;
+	int error = 0;
+	int div = y1 - y0;
+	int starty = 0;
+
+	int endy = y1 - y0;
+	if(y0 + endy > maxy) endy = maxy - y0;
+	
+	tx %= texture->width;
+	ty %= height;
+
+	if(y0 < miny)
+	{
+		error += tyinc * (miny - y0);
+		
+		int delta = error / div;
+		ty += delta;
+		error -= delta * div;
+
+		ty %= height;
+		dst += pitch * (miny - y0);
+		starty = miny - y0;
+	}
+
+	
+
+	DWORD *data = texture->data;
+	DWORD *src = data + ty * texture->width + tx;
+	
+	for(int y = starty; y <= endy; y++) 
+	{
+		*dst = *src;
+	
+		error += tyinc;
+		if(error > y1 - y0) 
+		{
+			error -= y1 - y0;
+			src += texture->width;
+
+			if(src >= data + texture->width * texture->height)
+			{
+				src -= texture->width * texture->height;
+			}
+		}
+
+		dst += pitch;
+	}
+}
+
+void TexturingEngineFixed::textureFloorCeiling(int x0, int x1, int y, Texture *texture, double u0, double v0, double u1, double v1)
+{
+	int x;
+	DWORD *src, *dst;
+	int SHIFT = 16;
+
+	if(x1 < x0) return;
+	
+	dst = mContext->frameBuffer() + y * mContext->pitch() + x0;
+
+	double u = u0;
+	double v = v0;
+	if(u < 0) u += texture->width * ((int)abs(u) / texture->width + 1);
+	if(v < 0) v += texture->height * ((int)abs(v) / texture->height + 1);
+	if(u >= texture->width) u -= texture->width * ((int)u / texture->width);
+	if(v >= texture->height) v -= texture->height * ((int)v / texture->height);
+
+	int U = (int)(u * (1 << SHIFT));
+	int V = (int)(v * (1 << SHIFT));
+
+	double uinc = (u1 - u0) / (x1 - x0);
+	int UINC = (int)(uinc * (1 << SHIFT));
+	double vinc = (v1 - v0) / (x1 - x0);
+	int VINC = (int)(vinc * (1 << SHIFT));
+
+	int WIDTH = texture->width << SHIFT;
+	int HEIGHT = texture->height << SHIFT;
+
+	for(x=0; x <= x1-x0; x++)
+	{
+		if(U < 0) U += WIDTH;
+		if(V < 0) V += HEIGHT;
+		if(U > WIDTH) U -= WIDTH;
+		if(V > HEIGHT) V -= HEIGHT;
+
+		src = texture->data + (V >> SHIFT) * texture->width + (U >> SHIFT);
+
+		*(dst) = *(src);
+		
+		dst++;
+
+		U += UINC;
+		V += VINC;
+	}
+}
+
 TexturingEngine *TexturingEngine::createTexturingEngine(GraphicsContext *context)
 {
-	return new TexturingEngineFloat(context);
+	return new TEXTURINGENGINE(context);
 }

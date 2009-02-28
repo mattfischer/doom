@@ -1,10 +1,10 @@
 4    #numtextures
 
 #num filename
-0    tex.raw 
-1    tex2.raw
-2    tex3.raw
-3    texb.raw
+0    tex.bmp
+1    tex2.bmp
+2    tex3.bmp
+3    texb.bmp
 
 2    #numsectors
 #num ceilingheight floorheight numwalls ceiltex floortex
