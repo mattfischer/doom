@@ -12,7 +12,21 @@ void PutPixel(GraphicsContext *context, int x, int y, DWORD color)
 void vline(GraphicsContext *context, int x, int y0, int y1, DWORD color)
 {
 	int y;
-	DWORD val;
+	int val;
+
+	if(y1 < y0)
+	{
+		int t = y1;
+		y1 = y0;
+		y0 = t;
+	}
+
+	if(x < 0 || x >= context->width()) return;
+	if(y0 >= context->height()) return;
+	if(y1 < 0) return;
+
+	if(y0 < 0) y0 = 0;
+	if(y1 >= context->height()) y1 = context->height() - 1;
 
 	val = y0 * context->pitch();
 	for(y=y0; y<=y1; y++)
@@ -25,18 +39,27 @@ void vline(GraphicsContext *context, int x, int y0, int y1, DWORD color)
 static void hline(GraphicsContext *context, int x0, int x1, int y, DWORD color)
 {
 	int x;
-	DWORD val;
-		
-#ifdef NOVIS
-	return;
-#endif
+	int val;
+
+	if(x1 < x0)
+	{
+		int t = x1;
+		x1 = x0;
+		x0 = t;
+	}
+
+	if(y < 0 || y >= context->height()) return;
+	if(x0 >= context->width()) return;
+	if(x1 < 0) return;
+
+	if(x0 < 0) x0 = 0;
+	if(x1 >= context->width()) x1 = context->width() - 1;
 
 	val = y * context->pitch();
 	for(x=x0; x<=x1; x++)
 	{
 		*(context->frameBuffer() + val + x) = color;
 	}
-
 }
 
 void DrawLine(GraphicsContext *context, int x0, int y0, int x1, int y1, DWORD color)

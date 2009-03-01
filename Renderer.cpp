@@ -60,10 +60,12 @@ void Renderer::drawMap(Player *player, int rotate, double zoom, Point *selectedP
 	int x0, y0, x1, y1;
 	int x0b, y0b, x1b, y1b;
 	int x0c, y0c, x1c, y1c;
-	
-	if(rotate == 0)	DrawLine(mContext, 320, 240, 320 + cosp * 20, 240 - sinp * 20, 0xFF0000);
-	else			DrawLine(mContext, 320, 240, 320, 220, 0xFF0000);
-	DrawCircle(mContext, 320, 240, 7, 0xFF0000);
+	int cx = mContext->width() / 2;
+	int cy = mContext->height() / 2;
+
+	if(rotate == 0)	DrawLine(mContext, cx, cy, cx + cosp * 20, cy - sinp * 20, 0xFF0000);
+	else			DrawLine(mContext, cx, cy, cx, cy - 20, 0xFF0000);
+	DrawCircle(mContext, cx, cy, 7, 0xFF0000);
 
 	for(i=0; i<mLevel->numSectors; i++)
 	{
@@ -71,22 +73,22 @@ void Renderer::drawMap(Player *player, int rotate, double zoom, Point *selectedP
 		for(j=0; j<sector->numWalls; j++)
 		{
 			wall = &sector->walls[j];
-			x0b = (wall->start.x - player->x) * zoom + 320;
-			y0b = -(wall->start.y - player->y) * zoom + 240;
-			x1b = (wall->end.x - player->x) * zoom + 320;
-			y1b = -(wall->end.y - player->y) * zoom + 240;
+			x0b = (wall->start.x - player->x) * zoom + cx;
+			y0b = -(wall->start.y - player->y) * zoom + cy;
+			x1b = (wall->end.x - player->x) * zoom + cx;
+			y1b = -(wall->end.y - player->y) * zoom + cy;
 
 			if(rotate)
 			{
-				x0c = x0b - 320;
-				y0c = y0b - 240;
-				x1c = x1b - 320;
-				y1c = y1b - 240;
+				x0c = x0b - cx;
+				y0c = y0b - cy;
+				x1c = x1b - cx;
+				y1c = y1b - cy;
 	
-				x0 = 320 + x0c * sinp + y0c * cosp;
-				y0 = 240 + y0c * sinp - x0c * cosp;
-				x1 = 320 + x1c * sinp + y1c * cosp;
-				y1 = 240 + y1c * sinp - x1c * cosp;
+				x0 = cx + x0c * sinp + y0c * cosp;
+				y0 = cy + y0c * sinp - x0c * cosp;
+				x1 = cx + x1c * sinp + y1c * cosp;
+				y1 = cy + y1c * sinp - x1c * cosp;
 			}
 			else
 			{

@@ -115,8 +115,8 @@ void GameState::processInput()
 		}
 	}
 
-/*	if(KEY_DOWN(VK_F11)) mapinfo.rotate=1;
-	if(KEY_DOWN(VK_F12)) mapinfo.rotate=0;*/
+	if(KEY_DOWN(VK_F11)) mMapRotate = true;
+	if(KEY_DOWN(VK_F12)) mMapRotate = false;
 
 	if(KEY_UP(VK_ADD)) plusflag = 0;
 	if(KEY_UP(VK_SUBTRACT)) minusflag = 0;
