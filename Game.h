@@ -3,7 +3,6 @@
 
 #include <windows.h>
 #include <stdlib.h>
-#include <ddraw.h>
 
 #include "World.h"
 

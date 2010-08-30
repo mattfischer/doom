@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="doom"
 	ProjectGUID="{90B5A3C5-D8EB-42B5-9AEE-47D9C2AB6F21}"
+	RootNamespace="doom"
 	>
 	<Platforms>
 		<Platform
@@ -75,7 +76,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib ddraw.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib d3d9.lib"
 				OutputFile=".\Debug/doom.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -145,7 +146,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="&quot;C:\Program Files\Microsoft DirectX SDK (November 2008)\Include&quot;"
+				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -172,11 +173,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib ddraw.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib d3d9.lib"
 				OutputFile=".\Release/doom.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\Microsoft DirectX SDK (November 2008)\Lib\x86&quot;"
+				AdditionalLibraryDirectories=""
 				ProgramDatabaseFile=".\Release/doom.pdb"
 				SubSystem="2"
 				TargetMachine="1"

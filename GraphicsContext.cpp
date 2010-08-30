@@ -2,139 +2,66 @@
 
 #include "Debug.h"
 
-extern HANDLE DebugFile;
-
-void HandleBadResult(int ddrval,int level)
-{
-
-	char buff[100];
-	char buff2[100];
-	wsprintf(buff2,"Level %i:",level);
-
-	WriteFile(DebugFile,"Error:",6,(LPDWORD)buff,(LPOVERLAPPED)NULL);
-	WriteFile(DebugFile,buff2,strlen(buff2),(LPDWORD)buff,(LPOVERLAPPED)NULL);
-
-	switch(ddrval)
-	{
-		case DDERR_DCALREADYCREATED:
-			WriteFile(DebugFile,"DC already created",18,(LPDWORD)buff,(LPOVERLAPPED)NULL);
-			break;
-		case DDERR_CANTCREATEDC:
-			WriteFile(DebugFile,"Cant make DC",12,(LPDWORD)buff,(LPOVERLAPPED)NULL);
-			break;
-		case DDERR_DIRECTDRAWALREADYCREATED:
-			WriteFile(DebugFile,"Already created",15,(LPDWORD)buff,(LPOVERLAPPED)NULL);
-			break;
-
-		case DDERR_INVALIDCAPS:
-			WriteFile(DebugFile,"Invalid caps",12,(LPDWORD)buff,(LPOVERLAPPED)NULL);
-			break;
-		case DDERR_INVALIDPARAMS:
-			WriteFile(DebugFile,"Invalid params",14,(LPDWORD)buff,(LPOVERLAPPED)NULL);
-			break;
-		case DDERR_INVALIDRECT:
-			WriteFile(DebugFile,"Invalid rect\n",12,(LPDWORD)buff,(LPOVERLAPPED)NULL);
-			break;
-
-	}
-}
-
 GraphicsContext::GraphicsContext(HWND hWnd, int width, int height)
 {
-	HRESULT ddrval;
-	DDSURFACEDESC ddSD;
-	DDSCAPS ddsCaps;
+	mD3d = Direct3DCreate9(D3D_SDK_VERSION);
 
+	mD3dDevice = NULL;
+	mHWnd = hWnd;
 	mWidth = width;
 	mHeight = height;
 
-	ddrval = DirectDrawCreate(NULL, &mDirectDraw, NULL);
-
-	if(ddrval != DD_OK)
-	{
-		HandleBadResult(ddrval, 1);
-	}
-
-	ddrval = mDirectDraw->SetCooperativeLevel(hWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_NOWINDOWCHANGES);
-
-	if(ddrval != DD_OK)
-	{
-		HandleBadResult(ddrval, 2);
-	}
-
-	mDirectDraw->SetDisplayMode(mWidth, mHeight, 32);
-
-	ZeroMemory((LPVOID)&ddSD, (DWORD)sizeof(ddSD));
-	ddSD.dwSize = sizeof(ddSD);
-	ddSD.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-	ddSD.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
-	ddSD.dwBackBufferCount = 2;
-
-	ddrval = mDirectDraw->CreateSurface(&ddSD, &mPrimarySurface, NULL);
-
-	if(ddrval != DD_OK)
-	{
-		HandleBadResult(ddrval, 4);
-	}
-	ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
-
-	ddrval = mPrimarySurface->GetAttachedSurface(&ddsCaps, &mBackSurface);
-
-	if(ddrval != DD_OK)
-	{
-		HandleBadResult(ddrval, 5);
-	}
-
-	ddsCaps.dwCaps = DDSCAPS_FLIP;
-	mBackSurface->GetAttachedSurface(&ddsCaps, &mBackSurface);
-
-	mActive = true;
+	setActive(true);
 }
-
 
 GraphicsContext::~GraphicsContext()
 {
 	setActive(false);
 
-	if(mDirectDraw)
+	if(mD3d)
 	{
-		if(mPrimarySurface)
+		if(mD3dDevice)
 		{
-			mPrimarySurface->Release();
+			mD3dDevice->Release();
 		}
 
-		mDirectDraw->Release();
+		mD3d->Release();
 	}
 }
-
-void ClearSurface(LPDIRECTDRAWSURFACE Surface)
-{
-	DDBLTFX Fx;
-	Fx.dwSize=sizeof(DDBLTFX);
-
-	Fx.dwFillColor=0;
-
-	Surface->Blt(NULL,NULL,NULL,DDBLT_COLORFILL,&Fx);
-}
-
 
 void GraphicsContext::flip()
 {
 	int ddrval;
-	ddrval = mPrimarySurface->Flip(NULL,0);
+	ddrval = mD3dDevice->Present(NULL, NULL, NULL, NULL);
 }
 
 void GraphicsContext::setActive(bool active)
 {
 	if(active)
 	{
-		mDirectDraw->SetDisplayMode(mWidth, mHeight, 32);
-		mPrimarySurface->Restore();
-		mBackSurface->Restore();
-	}
-	else
-	{
-		mDirectDraw->RestoreDisplayMode();
+		D3DPRESENT_PARAMETERS d3dpp;
+
+		ZeroMemory(&d3dpp, sizeof(d3dpp));
+		d3dpp.Windowed = FALSE;
+		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+		d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8;
+		d3dpp.BackBufferWidth = mWidth;
+		d3dpp.BackBufferHeight = mHeight;
+		d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+
+		if(mD3dDevice == NULL)
+		{
+			mD3d->CreateDevice(D3DADAPTER_DEFAULT,
+							   D3DDEVTYPE_HAL,
+							   mHWnd,
+							   D3DCREATE_SOFTWARE_VERTEXPROCESSING,
+							   &d3dpp,
+							   &mD3dDevice);
+		}
+		else
+		{
+			mD3dDevice->Reset(&d3dpp);
+		}
 	}
 
 	mActive = active;
@@ -149,19 +76,20 @@ void GraphicsContext::setLocked(bool locked)
 {
 	if(locked)
 	{
-		DDSURFACEDESC ddsd;
-		DWORD ddrval;
-		ddsd.dwSize = sizeof(DDSURFACEDESC);
-		
-		ddrval = mBackSurface->Lock(NULL, &ddsd, DDLOCK_WAIT, NULL);
-		if(ddrval != DD_OK) HandleBadResult(ddrval, 0);
+		HRESULT result;
+		D3DLOCKED_RECT rect;
 
-		mFrameBuffer = (DWORD*)ddsd.lpSurface;
-		mPitch = ddsd.lPitch / sizeof(DWORD);
+		result = mD3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &mD3dSurface);
+		result = mD3dSurface->LockRect(&rect, NULL, 0);
+
+		mFrameBuffer = (DWORD*)rect.pBits;
+		mPitch = rect.Pitch / sizeof(DWORD);
 	}
 	else 
 	{
-		mBackSurface->Unlock(NULL);
+		mD3dSurface->UnlockRect();
+		mD3dSurface->Release();
+		mD3dSurface = NULL;
 		mFrameBuffer = NULL;
 		mPitch = 0;
 	}

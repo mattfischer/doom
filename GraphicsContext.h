@@ -2,7 +2,7 @@
 #define GRAPHICSCONTEXT_H
 
 #include <windows.h>
-#include <ddraw.h>
+#include <d3d9.h>
 #include <stdlib.h>
 
 class GraphicsContext {
@@ -25,9 +25,11 @@ public:
 	int height();
 
 protected:
-	LPDIRECTDRAW mDirectDraw;
-	LPDIRECTDRAWSURFACE mPrimarySurface;
-	LPDIRECTDRAWSURFACE mBackSurface;
+	LPDIRECT3D9  		mD3d;
+	LPDIRECT3DDEVICE9	mD3dDevice;
+	LPDIRECT3DSURFACE9  mD3dSurface;
+
+	HWND mHWnd;
 	DWORD *mFrameBuffer;
 	int mPitch;
 	bool mActive;
