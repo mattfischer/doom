@@ -3,6 +3,8 @@
 #include "Texture.h"
 #include "GraphicsContext.h"
 
+#include <math.h>
+
 #define TEXTURINGENGINE TexturingEngineFixed
 
 TexturingEngine::TexturingEngine(GraphicsContext *context)
